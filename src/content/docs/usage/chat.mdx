@@ -53,12 +53,13 @@ Once configured, you can ask Claude questions like:
 - *"Show me the top 10 senders in my archive"*
 - *"Find all messages with attachments larger than 5MB"*
 - *"Stage all messages from linkedin.com for deletion"*
+- *"Stage promotional emails from before 2023 for deletion"*
 
 Claude will automatically call the appropriate msgvault tools to retrieve and analyze your messages.
 
 ## Staged Deletion via MCP
 
-The `stage_deletion` tool lets an AI assistant help you clean up your inbox. It accepts either a Gmail-style query string or structured filters (sender, domain, label, date range), but not both at once.
+The `stage_deletion` tool lets an AI assistant help you clean up your inbox. It accepts either a Gmail-style query string or structured filters (sender, domain, label, date range), but not both at once. Results are capped at 100,000 messages per call.
 
 When called, `stage_deletion` creates a local deletion manifest, a JSON file listing the matched messages. It does **not** delete anything. To execute the deletion, you must run `msgvault delete-staged` from the CLI. See [Deleting Email](/usage/deletion/) for the full workflow.
 
