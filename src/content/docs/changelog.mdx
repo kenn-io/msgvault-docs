@@ -1,0 +1,191 @@
+---
+title: Changelog
+description: Release history for msgvault
+---
+
+All notable changes to msgvault, grouped by minor release.
+
+## 0.9
+<small>2026-02-26</small>
+
+**New features**
+
+- `create-subset` command to generate smaller subset databases for testing or sharing.
+- `remove-account` command to delete an account and all its local data.
+
+**Improvements**
+
+- Support modern Apple Mail V10 directory layouts during `import-emlx`.
+- Handle expired or revoked OAuth tokens with automatic re-authentication and a `--force` flag.
+
+**Bug fixes**
+
+- Fix a foreign key constraint failure during message ingest.
+
+---
+
+## 0.8
+<small>2026-02-24</small>
+
+**New features**
+
+- `import-mbox` command to import local MBOX archives.
+- `import-emlx` command to import Apple Mail `.emlx` exports.
+- MCP `stage_deletion` tool for Claude-assisted staged email cleanup.
+- NAS/Docker deployment support with updated Compose templates.
+
+**Improvements**
+
+- Installation instructions for conda-forge and additional package managers.
+
+**Bug fixes**
+
+- Fix TUI label search and aggregate search behavior.
+
+---
+
+## 0.7
+<small>2026-02-09</small>
+
+**New features**
+
+- HTTP API server with daemon mode and scheduled background syncs.
+- Account filters for MCP `search`, `list`, and `aggregate` tools.
+- Hide-deleted message filter with a revamped filter modal in the TUI.
+- Gmail thread ID support in query results.
+- Nix flake for reproducible builds.
+
+**Improvements**
+
+- Optimize incremental sync to reduce sync time.
+- Harden cache validation and handling.
+
+**Bug fixes**
+
+- Fix CPU pinning behavior during batch deletion.
+- Fix batch deletion terminal UI workflow issues.
+
+---
+
+## 0.6
+<small>2026-02-05</small>
+
+**New features**
+
+- Secure file permissions with Windows DACL support.
+- Windows update support with `.zip` archives and `.exe` binaries.
+- `--home` CLI flag to set the base directory for archives.
+- FTS5 full-text search index built and updated during sync, with automatic backfill for existing databases.
+
+**Improvements**
+
+- Strip surrounding quotes from CLI paths for Windows CMD compatibility.
+- Suggest running `repair-encoding` when encoding errors are detected during sync.
+
+**Bug fixes**
+
+- Fix TUI search and navigation issues (pagination, scrolling, stats, zero-result handling).
+- Fix silent error handling in encoding repair.
+- Fix command-injection risk when launching OAuth browser.
+- Fix Windows TOML parsing error hints for backslashes.
+- Preserve cursor position when scrolling page up/down in the message list.
+- Fix invalid UTF-8 handling during sync to prevent failures.
+
+---
+
+## 0.5
+<small>2026-02-04</small>
+
+**New features**
+
+- `export-attachment` and `export-attachments` CLI commands.
+- Windows support with installer, config path fixes, and `--config` flag.
+- MCP attachment support with embedded resources and `export_attachment` tool.
+- Account management CLI with `add`, `list`, and `update` commands.
+
+**Improvements**
+
+- Improve Windows installer, remove `sqlite_scanner` dependency, and harden test reliability.
+
+**Bug fixes**
+
+- Fix cache consistency after deletions.
+- Fix incremental export losing junction table data.
+- Fix SQL injection vulnerability in query handling.
+- Fix MIME date parsing issues.
+- Fix path traversal risk in attachment export, including symlink traversal.
+- Fix non-functional `sync-full` limit argument.
+- Fix DuckDB type handling errors.
+- Prevent crash when rethrowing panics during export.
+- Add missing bounds checks in MCP handlers.
+
+---
+
+## 0.4
+<small>2026-02-03</small>
+
+**New features**
+
+- `--list` flag on `delete-staged` to preview staged deletions before executing.
+
+**Improvements**
+
+- Replace broken `--headless` device flow with clearer setup instructions.
+
+---
+
+## 0.3
+<small>2026-02-02</small>
+
+**New features**
+
+- `sync` and `sync-full` run without arguments to sync all accounts.
+
+**Improvements**
+
+- Tighten private file permissions to `600` for better local data security.
+- Improve deletion progress display and recovery behavior.
+
+**Bug fixes**
+
+- Fix deletion issues around scope escalation and checkpoint recovery.
+- Fix missing `rows.Err()` handling when batching participants.
+
+---
+
+## 0.2
+<small>2026-02-02</small>
+
+**Improvements**
+
+- Use MCP server for chat instead of the built-in chat command.
+- Reduce memory use during string joins for better performance.
+
+---
+
+## 0.1
+<small>2026-02-02</small>
+
+**New features**
+
+- MCP server for AI-assisted email exploration.
+
+**Improvements**
+
+- Improve Linux compatibility by building against Ubuntu 20.04 (glibc 2.31).
+- Rename `sync-incremental` command to `sync` for a simpler workflow.
+- Show full version tag in the TUI title bar.
+- Show helpful OAuth setup instructions when `client_secrets` is missing.
+
+**Bug fixes**
+
+- Fix TUI update notification to show commit and date info in release builds.
+- Fix incorrect elapsed time reporting during sync.
+- Fix recipient name filters to include BCC recipients.
+
+---
+
+## 0.0
+<small>2026-02-01</small>
+
+Initial public release.
