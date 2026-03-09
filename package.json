@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "prebuild": "mkdir -p public && curl -fsSL https://raw.githubusercontent.com/wesm/msgvault/main/scripts/install.sh -o public/install.sh.tmp && mv public/install.sh.tmp public/install.sh || rm -f public/install.sh.tmp && curl -fsSL https://raw.githubusercontent.com/wesm/msgvault/main/scripts/install.ps1 -o public/install.ps1.tmp && mv public/install.ps1.tmp public/install.ps1 || rm -f public/install.ps1.tmp",
+    "prebuild": "rm -f public/install.sh public/install.ps1",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro"
