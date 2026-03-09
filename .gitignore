@@ -8,3 +8,6 @@ dist/
 vhs/demo-data
 vhs/tapes/output/
 scripts/output/*.png
+
+public/install.sh
+public/install.ps1
