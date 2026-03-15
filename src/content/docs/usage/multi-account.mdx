@@ -3,16 +3,26 @@ title: Multi-Account
 description: Archive multiple Gmail accounts in a single database.
 ---
 
-## Adding Accounts
+## One Secret, Many Tokens
 
-Each Gmail account needs its own OAuth authorization:
+A single `client_secret.json` supports all your Gmail accounts. You do **not** need to create separate OAuth credentials or edit your config between accounts. Each `add-account` call authorizes one account and stores a separate token file.
+
+<img src="/oauth-multi-account.svg" alt="Diagram showing one OAuth client secret creating separate token files for each account" width="720" />
+
+See the [OAuth Setup Guide](/guides/oauth-setup/#multiple-accounts) for the full setup walkthrough.
+
+## Adding Accounts
 
 ```bash
 msgvault add-account personal@gmail.com
 msgvault add-account work@company.com
 ```
 
-All accounts share the same SQLite database and attachment storage.
+Each command opens a browser for that account's authorization. All accounts share the same SQLite database and attachment storage.
+
+:::tip
+Each account must be listed as a **Test user** in your Google Cloud OAuth consent screen. This is the most common reason a second account fails to authorize.
+:::
 
 ## Syncing
 
@@ -32,6 +42,8 @@ Or sync a specific account:
 msgvault sync-full personal@gmail.com
 msgvault sync work@company.com
 ```
+
+If a token expires during sync, msgvault prints the re-authorization URL with the account name so you can select the correct Google account. It will not auto-launch a browser during re-auth to prevent accidentally authorizing the wrong account.
 
 ## Cross-Account Search
 
