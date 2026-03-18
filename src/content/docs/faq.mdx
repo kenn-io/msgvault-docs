@@ -34,7 +34,7 @@ Everything stays on your local machine. msgvault stores messages in a SQLite dat
 
 <p class="faq-question">Can I use msgvault with non-Gmail accounts?</p>
 
-Yes. While Gmail sync is the primary data source, you can import email from any provider using `import-mbox` (standard MBOX archives) or `import-emlx` (Apple Mail exports). Most email providers offer an MBOX export option. Imported messages are stored in the same database and work with all the same tools: search, TUI, MCP server, web server, and export. See [Importing Local Email](/usage/importing/) for details. IMAP support is planned for a future release.
+Yes. You can sync from any standard IMAP server using `msgvault add-imap`, or import email from local files using `import-mbox` (standard MBOX archives) or `import-emlx` (Apple Mail exports). All messages are stored in the same database and work with all the same tools: search, TUI, MCP server, web server, and export. See [Setup Guide](/setup/#add-an-imap-account) for IMAP setup and [Importing Local Email](/usage/importing/) for file imports.
 
 <p class="faq-question">Does deleting email in msgvault delete it from Gmail?</p>
 

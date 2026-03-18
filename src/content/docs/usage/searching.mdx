@@ -58,6 +58,17 @@ msgvault search "from:boss@company.com has:attachment after:2024-01-01"
 msgvault search "quarterly report"
 ```
 
+## Account Filter
+
+In multi-account archives, use `--account` to limit results to a specific account:
+
+```bash
+msgvault search "quarterly report" --account work@company.com
+
+# List all messages for an account (no search query needed)
+msgvault search --account work@company.com
+```
+
 ## JSON Output
 
 Add `--json` for machine-readable output:

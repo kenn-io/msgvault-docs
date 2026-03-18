@@ -11,9 +11,21 @@ import Screenshot from '../../../components/Screenshot.astro';
 msgvault tui
 ```
 
-The TUI currently requires a local database — it does not support [remote servers](/guides/remote-deployment/). Remote TUI support is planned for a future release. For now, use the CLI commands (`search`, `stats`, etc.) which work in remote mode, or SSH into the remote host and run `msgvault tui` there.
-
 The TUI automatically builds or updates the Parquet analytics cache on launch when new messages are detected.
+
+### Remote Mode
+
+When your `config.toml` has a `[remote]` section configured, the TUI connects to the remote server automatically. All views, drill-downs, search, and filtering work the same as in local mode. Use `--local` to force a local database connection when remote is configured.
+
+```bash
+# Connects to remote server if [remote] is configured
+msgvault tui
+
+# Force local database
+msgvault tui --local
+```
+
+Deletion staging and attachment export are not available in remote mode.
 
 <Screenshot src="/tui-senders.svg" alt="msgvault TUI showing the Senders view with message counts and sizes" />
 

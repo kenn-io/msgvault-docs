@@ -5,6 +5,27 @@ description: Release history for msgvault
 
 All notable changes to msgvault, grouped by minor release.
 
+## 0.10
+<small>2026-03-15</small>
+
+**New features**
+
+- IMAP account support via `add-imap` command for syncing mail from any standard IMAP server.
+- Remote TUI support: `msgvault tui` can connect to a remote server when `[remote]` is configured.
+- `--account` flag on `search` to limit results to a specific account.
+
+**Improvements**
+
+- Auto-discover Apple Mail accounts during `import-emlx` by reading macOS `Accounts4.sqlite`.
+- Shorten overly long MIME parse error messages to keep terminal output readable.
+
+**Bug fixes**
+
+- Fix Apple Mail V10 import to discover `.emlx` files in partition subdirectories.
+- Prevent sync re-authentication from mixing tokens between accounts by adding `login_hint` and post-auth email validation.
+
+---
+
 ## 0.9
 <small>2026-02-26</small>
 

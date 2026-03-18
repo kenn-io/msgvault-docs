@@ -117,6 +117,45 @@ This opens your browser for OAuth consent. For headless servers, see the [copy-t
 
 If you plan to deploy to a remote host (NAS, cloud VM, etc.), run `msgvault setup` after this step to generate a ready-to-run deployment bundle with Docker Compose and remote configuration. See the [Remote Deployment](/guides/remote-deployment/) guide.
 
+## Add an IMAP Account
+
+To sync mail from a non-Gmail provider (Fastmail, Outlook, Yahoo, self-hosted, etc.), use `add-imap`:
+
+```bash
+msgvault add-imap --host imap.fastmail.com --username you@fastmail.com
+```
+
+You will be prompted for your password. The command tests the connection before saving credentials. Use an app-specific password if your provider supports them.
+
+Common IMAP servers:
+
+| Provider | Host | Port | Notes |
+|---|---|---|---|
+| Fastmail | `imap.fastmail.com` | 993 | App password recommended |
+| Outlook / Hotmail | `outlook.office365.com` | 993 | App password required with 2FA |
+| Yahoo | `imap.mail.yahoo.com` | 993 | App password required |
+| iCloud | `imap.mail.me.com` | 993 | App-specific password required |
+| Gmail (IMAP) | `imap.gmail.com` | 993 | Use `add-account` for Gmail API instead |
+| Self-hosted | your server hostname | 993 | |
+
+For STARTTLS connections (port 143), add `--starttls`:
+
+```bash
+msgvault add-imap --host mail.example.com --username you@example.com --starttls
+```
+
+After adding the account, sync it the same way as a Gmail account:
+
+```bash
+msgvault sync-full
+```
+
+IMAP accounts are stored in the same database as Gmail accounts. All tools (TUI, search, MCP, web server) work with IMAP messages the same way.
+
+:::note
+IMAP sync always performs a full scan of the mailbox. The `sync` (incremental) command falls back to a full sync for IMAP accounts because IMAP does not provide a change-tracking API like Gmail's History API. Messages already in the database are skipped efficiently.
+:::
+
 ## Sync Email
 
 ```bash

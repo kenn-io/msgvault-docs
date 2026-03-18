@@ -3,7 +3,7 @@ title: Importing Local Email
 description: Import MBOX archives and Apple Mail exports into msgvault.
 ---
 
-msgvault can import email from local files, not just Gmail. This lets you archive messages from any email provider that supports MBOX export, or import directly from Apple Mail's on-disk storage.
+msgvault can import email from local files, not just Gmail. This lets you archive messages from any email provider that supports MBOX export, or import directly from Apple Mail's on-disk storage. For live syncing from non-Gmail providers, see [IMAP account setup](/setup/#add-an-imap-account).
 
 Imported messages are stored in the same database as Gmail messages. You can search, browse, export, and analyze them with all the same tools (TUI, CLI, MCP server, web server). Labels, threading, attachments, and full-text search all work the same way.
 
@@ -60,19 +60,34 @@ ZIP archives are extracted to a cache directory and reused on subsequent runs, s
 
 ## import-emlx
 
-Import Apple Mail `.emlx` files from a Mail directory tree.
+Import Apple Mail `.emlx` files from a Mail directory tree. The importer can auto-discover accounts by reading macOS `Accounts4.sqlite`, or accept explicit arguments.
 
 ```bash
-msgvault import-emlx <identifier> <mail-dir>
+# Auto-discover all accounts
+msgvault import-emlx
+
+# Specify the mail directory
+msgvault import-emlx ~/Library/Mail/
+
+# Legacy form: explicit identifier and directory
+msgvault import-emlx me@gmail.com ~/Downloads/mail-2009/Mail/
 ```
+
+When run without arguments, the importer reads `~/Library/Accounts/Accounts4.sqlite` to map Apple Mail directory GUIDs to email addresses, then imports all discovered accounts. Use `--account` to filter to specific accounts during auto-discovery.
 
 The mail directory should be an Apple Mail mailbox tree containing `.mbox` or `.imapmbox` directories, each with a `Messages/` subdirectory of `.emlx` files. You can also point directly at a single `.mbox` directory.
 
 ### Examples
 
 ```bash
-# Import an entire Apple Mail directory tree
-msgvault import-emlx me@gmail.com ~/Downloads/mail-2009/Mail/
+# Auto-discover and import all accounts
+msgvault import-emlx
+
+# Auto-discover but only import one account
+msgvault import-emlx --account me@gmail.com
+
+# Import from a specific directory
+msgvault import-emlx ~/Library/Mail/
 
 # Import a single mailbox
 msgvault import-emlx me@gmail.com ~/Mail/INBOX.mbox/
@@ -83,6 +98,9 @@ msgvault import-emlx me@gmail.com ~/Mail/INBOX.mbox/
 | Flag | Default | Description |
 |---|---|---|
 | `--source-type` | `apple-mail` | Source type recorded in the database |
+| `--account` | — | Filter to specific account(s) during auto-discover (repeatable) |
+| `--accounts-db` | — | Custom path to macOS `Accounts4.sqlite` |
+| `--identifier` | — | Manual identifier when auto-discover is not suitable |
 | `--no-resume` | `false` | Start fresh instead of resuming an interrupted import |
 | `--checkpoint-interval` | `200` | Save progress every N messages |
 | `--no-attachments` | `false` | Skip writing attachments to disk (messages still record attachment metadata) |

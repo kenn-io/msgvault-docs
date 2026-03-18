@@ -41,6 +41,30 @@ msgvault add-account <email> --headless
 
 ---
 
+## add-imap
+
+Add an IMAP account for syncing mail from any standard IMAP server.
+
+```bash
+msgvault add-imap --host <hostname> --username <email>
+```
+
+The command prompts interactively for your password (never accepted as a flag to avoid shell history exposure). It tests the connection before saving credentials.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--host` | (required) | IMAP server hostname |
+| `--username` | (required) | IMAP username or email address |
+| `--port` | `993` | IMAP server port (993 for TLS, 143 for STARTTLS/plain) |
+| `--starttls` | `false` | Use STARTTLS instead of implicit TLS |
+| `--no-tls` | `false` | Disable TLS entirely (plaintext, not recommended) |
+
+Credentials are stored in `tokens/imap_<hash>.json` with restricted file permissions. Use app-specific passwords when your provider supports them.
+
+After adding an account, sync it with `msgvault sync-full`. IMAP accounts use the same `sync` and `sync-full` commands as Gmail. See [Setup Guide](/setup/#add-an-imap-account) for a walkthrough.
+
+---
+
 ## sync-full
 
 Download all messages from a Gmail account. When called without an email argument, syncs all configured accounts.
@@ -94,9 +118,16 @@ See [Importing Local Email](/usage/importing/) for usage examples.
 
 ## import-emlx
 
-Import Apple Mail `.emlx` files into msgvault.
+Import Apple Mail `.emlx` files into msgvault. Can auto-discover accounts from macOS `Accounts4.sqlite` or accept explicit arguments.
 
 ```bash
+# Auto-discover accounts (reads ~/Library/Accounts/Accounts4.sqlite)
+msgvault import-emlx
+
+# Specify mail directory
+msgvault import-emlx <mail-dir>
+
+# Legacy form: explicit identifier and directory
 msgvault import-emlx <identifier> <mail-dir>
 ```
 
@@ -105,6 +136,9 @@ The mail directory should be an Apple Mail mailbox tree containing `.mbox` or `.
 | Flag | Default | Description |
 |---|---|---|
 | `--source-type` | `apple-mail` | Source type recorded in database |
+| `--account` | — | Filter to specific account(s) during auto-discover (repeatable) |
+| `--accounts-db` | — | Custom path to macOS `Accounts4.sqlite` |
+| `--identifier` | — | Manual identifier when auto-discover is not suitable |
 | `--no-resume` | `false` | Start fresh, ignoring interrupted progress |
 | `--checkpoint-interval` | `200` | Save progress every N messages |
 | `--no-attachments` | `false` | Skip writing attachments to disk |
@@ -126,6 +160,7 @@ msgvault search <query> [flags]
 | `-n`, `--limit N` | Maximum number of results (default: 50) |
 | `--offset N` | Skip first N results |
 | `--json` | Output results as JSON |
+| `--account` | Limit results to a specific account |
 
 See [Searching](/usage/searching/) for the full operator reference.
 

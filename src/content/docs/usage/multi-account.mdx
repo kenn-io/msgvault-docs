@@ -14,11 +14,15 @@ See the [OAuth Setup Guide](/guides/oauth-setup/#multiple-accounts) for the full
 ## Adding Accounts
 
 ```bash
+# Gmail accounts (OAuth)
 msgvault add-account personal@gmail.com
 msgvault add-account work@company.com
+
+# IMAP accounts (password)
+msgvault add-imap --host imap.fastmail.com --username you@fastmail.com
 ```
 
-Each command opens a browser for that account's authorization. All accounts share the same SQLite database and attachment storage.
+Gmail accounts open a browser for OAuth authorization. IMAP accounts prompt for a password and test the connection. All accounts share the same SQLite database and attachment storage.
 
 :::tip
 Each account must be listed as a **Test user** in your Google Cloud OAuth consent screen. This is the most common reason a second account fails to authorize.
@@ -51,6 +55,12 @@ Search queries run across all accounts by default:
 
 ```bash
 msgvault search "quarterly report"
+```
+
+Use `--account` to limit results to a specific account:
+
+```bash
+msgvault search "quarterly report" --account work@company.com
 ```
 
 ## TUI Filtering
