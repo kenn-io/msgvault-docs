@@ -86,6 +86,28 @@ msgvault add-account you@gmail.com
 
 This opens your browser to Google's OAuth consent page. Sign in, grant access, and tokens are stored locally in `~/.msgvault/tokens/`.
 
+## Multiple Accounts
+
+A single `client_secret.json` works for all your Gmail accounts. You do **not** need separate OAuth credentials, config entries, or projects per account. Each `add-account` call creates a separate token file — no config changes required between accounts.
+
+<img src="/oauth-multi-account.svg" alt="Diagram showing one OAuth client secret creating separate token files for each account" width="720" />
+
+```bash
+# Same client_secret.json, different accounts
+msgvault add-account personal@gmail.com
+msgvault add-account work@company.com
+msgvault add-account other@gmail.com
+
+# Sync all at once — no config editing needed
+msgvault sync
+```
+
+Each account goes through its own browser authorization once. After that, `msgvault sync` refreshes all tokens automatically.
+
+:::tip
+Make sure all Gmail addresses you want to sync are listed as **Test users** in your Google Cloud OAuth consent screen (Step 3 above). This is the most common reason a second account fails to authorize.
+:::
+
 ## Headless Server Setup
 
 When running msgvault on a headless server (SSH, VPS, Docker), there is no browser available for OAuth. Google's device code flow does not support Gmail scopes, so you must authorize on a machine with a browser and copy the token to your server.

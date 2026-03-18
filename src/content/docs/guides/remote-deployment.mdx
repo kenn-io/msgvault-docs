@@ -232,11 +232,11 @@ api_key = "YOUR_API_KEY"
 allow_insecure = true
 ```
 
-`search`, `stats`, `list-accounts`, and `show-message` automatically query the remote API.
+`search`, `stats`, `list-accounts`, `show-message`, and `tui` automatically query the remote API.
 Use `--local` if you explicitly want to query local SQLite instead.
 
-:::caution[TUI is local-only]
-The interactive TUI (`msgvault tui`) currently requires a local SQLite database and Parquet analytics cache. Remote TUI support is planned for a future release. For now, SSH into the remote host and run `msgvault tui` there, or use the CLI commands listed above.
+:::tip[Remote TUI]
+The interactive TUI (`msgvault tui`) connects to the remote server automatically when `[remote]` is configured. All views, drill-downs, search, and filtering work the same as local mode. Deletion staging and attachment export are not available in remote mode. Use `--local` to force a local database connection.
 :::
 
 ## Platform Notes
