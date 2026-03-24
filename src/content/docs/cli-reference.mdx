@@ -32,11 +32,14 @@ Add a Gmail account and authorize via OAuth.
 ```bash
 msgvault add-account <email>
 msgvault add-account <email> --headless
+msgvault add-account <email> --oauth-app <name>
 ```
 
 | Flag | Description |
 |---|---|
 | `--headless` | Show instructions for headless server setup |
+| `--oauth-app` | Use a named OAuth app from `[oauth.apps.<name>]` in config |
+| `--force` | Delete existing token and re-authorize |
 | `--display-name` | Set a display name for the account |
 
 ---

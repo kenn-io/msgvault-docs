@@ -27,19 +27,23 @@ See [Configuration: Windows paths](/configuration/#windows-paths) for more detai
 
 ### "Error 403: access_denied"
 
-Your email isn't added as a test user. Go to **OAuth consent screen > Test users** and add your Gmail address.
+Your email isn't added as a test user. Go to **OAuth consent screen > Test users** and add your Gmail address. For Workspace accounts using a named OAuth app, add the test user in that org's Google Cloud project.
 
 ### "Access blocked: This app's request is invalid"
 
-The Gmail scope isn't configured. Verify you added `gmail.modify` scope and that Gmail API is enabled in your Google Cloud project.
+The Gmail scope isn't configured. Verify you added `gmail.modify` on the **Data Access** page and that Gmail API is enabled in your Google Cloud project.
+
+### "Access blocked" or "app not approved" for Workspace accounts
+
+The Workspace organization restricts OAuth to apps created within their org. Create a separate Google Cloud project inside the org and configure it as a named OAuth app. See [OAuth Setup: Google Workspace Accounts](/guides/oauth-setup/#google-workspace-accounts).
 
 ### "redirect_uri_mismatch"
 
-Wrong application type. Ensure you selected **Desktop application** when creating OAuth credentials.
+Wrong application type. Ensure you selected **Desktop app** when creating OAuth credentials.
 
 ### "OAuth client is missing redirect_uris"
 
-You created a "TVs and Limited Input devices" OAuth client, which doesn't work with Gmail. Google's device code flow does not support Gmail scopes. Create a new OAuth client with **Desktop application** type instead.
+You created a "TVs and Limited Input devices" OAuth client, which doesn't work with Gmail. Google's device code flow does not support Gmail scopes. Create a new OAuth client with **Desktop app** type instead.
 
 ### General OAuth Issues
 

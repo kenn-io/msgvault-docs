@@ -23,8 +23,12 @@ data_dir = "/path/to/msgvault/data"
 database_url = "/path/to/msgvault.db"
 
 [oauth]
-# Path to Google OAuth client secrets JSON (required)
+# Path to Google OAuth client secrets JSON (required for Gmail)
 client_secrets = "/path/to/client_secret.json"
+
+# Named OAuth apps for Google Workspace orgs (optional)
+[oauth.apps.acme]
+client_secrets = "/path/to/acme_workspace_secret.json"
 
 [sync]
 # Gmail API rate limit (requests per second)
@@ -78,7 +82,17 @@ Attachments and OAuth tokens are stored in subdirectories of `data_dir` (`attach
 
 | Key | Default | Description |
 |---|---|---|
-| `client_secrets` | — | Path to Google OAuth `client_secret.json` (required) |
+| `client_secrets` | — | Path to Google OAuth `client_secret.json` (required for Gmail) |
+
+#### `[oauth.apps.<name>]`
+
+Named OAuth apps for Google Workspace organizations that require their own OAuth credentials. Each entry defines a separate `client_secret.json`. Use `--oauth-app <name>` with `add-account` to bind an account to a named app.
+
+| Key | Default | Description |
+|---|---|---|
+| `client_secrets` | — | Path to the org's `client_secret.json` |
+
+See [OAuth Setup: Google Workspace Accounts](/guides/oauth-setup/#google-workspace-accounts) for when and why you need named apps.
 
 ### `[sync]`
 
