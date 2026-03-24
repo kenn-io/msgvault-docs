@@ -5,6 +5,25 @@ description: Release history for msgvault
 
 All notable changes to msgvault, grouped by minor release.
 
+## 0.11
+<small>2026-03-24</small>
+
+**New features**
+
+- Multiple OAuth apps: Google Workspace accounts that require org-specific OAuth credentials can use named apps via `--oauth-app` flag and `[oauth.apps.<name>]` config.
+- `source_conversation_id` (Gmail thread ID) included in `search --json` and `show-message --json` output.
+
+**Improvements**
+
+- Show `*` feedback while typing IMAP account passwords during `add-imap`.
+
+**Bug fixes**
+
+- Handle SQLite corruption and empty analytics cache states more safely during verification and cache builds.
+- Improve IMAP4rev1 server compatibility by avoiding unsupported `ESEARCH RETURN (ALL)` queries.
+
+---
+
 ## 0.10
 <small>2026-03-15</small>
 
