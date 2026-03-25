@@ -19,14 +19,14 @@ msgvault requires OAuth credentials to access the Gmail API. This guide walks th
 
 ## Step 3: Configure OAuth Consent Screen
 
-1. Go to **APIs & Services > OAuth consent screen**
+1. Go to **APIs & Services > OAuth consent screen** (Google may call this **Google Auth Platform**)
 2. Choose **External** user type (or **Internal** for Google Workspace)
 3. Fill in required fields:
    - App name: `msgvault`
    - User support email: your email
    - Developer contact email: your email
 4. Click **Save and Continue**
-5. On the Scopes page, click **Add or Remove Scopes**
+5. On the **Data Access** page, click **Add or Remove Scopes**
 6. Add the scope: `https://www.googleapis.com/auth/gmail.modify`
 7. Save and continue through the remaining screens
 8. Under **Test users**, add all Gmail addresses you want to sync
@@ -39,7 +39,7 @@ The `gmail.modify` scope enables deletion features while sync operations remain 
 
 1. Go to **APIs & Services > Credentials**
 2. Click **Create Credentials > OAuth client ID**
-3. Choose **Desktop application** as the application type
+3. Choose **Desktop app** as the application type
 4. Name it `msgvault` (or similar)
 5. Click **Create**
 6. Download the JSON file
@@ -49,8 +49,8 @@ The `gmail.modify` scope enables deletion features while sync operations remain 
 Never commit `client_secret.json` to version control.
 :::
 
-:::caution[Desktop Application Only]
-You must choose **Desktop application** as the client type. Do not use "TVs and Limited Input devices" as Google's device code flow does not support Gmail scopes.
+:::caution[Desktop App Only]
+You must choose **Desktop app** as the client type. Do not use "TVs and Limited Input devices" as Google's device code flow does not support Gmail scopes.
 :::
 
 ## Step 5: Configure msgvault
@@ -67,9 +67,6 @@ The `.msgvault` directory is created automatically the first time you run any ms
 ```toml
 [oauth]
 client_secrets = "/path/to/your/client_secret.json"
-
-[sync]
-rate_limit_qps = 5
 ```
 
 On Windows, use forward slashes or escaped backslashes for the path:
@@ -88,25 +85,55 @@ This opens your browser to Google's OAuth consent page. Sign in, grant access, a
 
 ## Multiple Accounts
 
-A single `client_secret.json` works for all your Gmail accounts. You do **not** need separate OAuth credentials, config entries, or projects per account. Each `add-account` call creates a separate token file — no config changes required between accounts.
-
-<img src="/oauth-multi-account.svg" alt="Diagram showing one OAuth client secret creating separate token files for each account" width="720" />
+For personal Gmail accounts, a single `client_secret.json` works for all of them. Each `add-account` call creates a separate token file:
 
 ```bash
-# Same client_secret.json, different accounts
 msgvault add-account personal@gmail.com
-msgvault add-account work@company.com
 msgvault add-account other@gmail.com
 
-# Sync all at once — no config editing needed
-msgvault sync
+msgvault sync   # syncs all accounts
 ```
-
-Each account goes through its own browser authorization once. After that, `msgvault sync` refreshes all tokens automatically.
 
 :::tip
 Make sure all Gmail addresses you want to sync are listed as **Test users** in your Google Cloud OAuth consent screen (Step 3 above). This is the most common reason a second account fails to authorize.
 :::
+
+### Google Workspace Accounts
+
+Many Google Workspace organizations restrict OAuth to apps created within their own org. If you get an "access denied" or "app blocked" error when authorizing a Workspace account with your personal OAuth app, the org likely requires its own app.
+
+To handle this, create a separate Google Cloud project inside the Workspace org (Steps 1-4 above), then add it as a named OAuth app in `config.toml`:
+
+```toml
+[oauth]
+client_secrets = "/path/to/personal_secret.json"    # default for personal Gmail
+
+[oauth.apps.acme]
+client_secrets = "/path/to/acme_workspace_secret.json"
+```
+
+Then specify the app when adding Workspace accounts:
+
+```bash
+msgvault add-account you@acme.com --oauth-app acme
+msgvault add-account personal@gmail.com              # uses default
+```
+
+The binding is stored per account, so `sync`, `verify`, and `serve` automatically use the correct credentials. You only need `--oauth-app` when first adding or rebinding an account.
+
+<img src="/oauth-multi-account.svg" alt="Diagram showing default and named OAuth apps creating separate token files for each account" width="720" />
+
+To switch an existing account to a different OAuth app:
+
+```bash
+msgvault add-account you@acme.com --oauth-app acme   # re-authorizes with new app
+```
+
+To move an account back to the default app:
+
+```bash
+msgvault add-account you@acme.com --oauth-app ""      # clears the binding
+```
 
 ## Headless Server Setup
 
@@ -175,5 +202,5 @@ The token will be detected and the account registered. No browser needed.
 The token file contains OAuth refresh tokens that are automatically renewed. You only need to copy it once unless you revoke access.
 
 :::note
-Both machines must have the same `client_secret.json` configured, or use the same OAuth client credentials. The token is tied to the OAuth client that created it.
+Both machines must use the same OAuth client credentials. The token is tied to the OAuth client that created it. If the account uses a named OAuth app (`--oauth-app`), configure the same `[oauth.apps.<name>]` section on both machines.
 :::

@@ -3,20 +3,20 @@ title: Multi-Account
 description: Archive multiple Gmail accounts in a single database.
 ---
 
-## One Secret, Many Tokens
+## OAuth Apps and Tokens
 
-A single `client_secret.json` supports all your Gmail accounts. You do **not** need to create separate OAuth credentials or edit your config between accounts. Each `add-account` call authorizes one account and stores a separate token file.
+For personal Gmail accounts, a single `client_secret.json` supports all of them. Each `add-account` call authorizes one account and stores a separate token file.
 
-<img src="/oauth-multi-account.svg" alt="Diagram showing one OAuth client secret creating separate token files for each account" width="720" />
+Google Workspace organizations often restrict OAuth to apps created within their own org. If a Workspace account fails to authorize with your default app, create a separate OAuth app inside that org and add it as a named app in `config.toml`. See the [OAuth Setup Guide](/guides/oauth-setup/#google-workspace-accounts) for the full walkthrough.
 
-See the [OAuth Setup Guide](/guides/oauth-setup/#multiple-accounts) for the full setup walkthrough.
+<img src="/oauth-multi-account.svg" alt="Diagram showing default and named OAuth apps creating separate token files for each account" width="720" />
 
 ## Adding Accounts
 
 ```bash
 # Gmail accounts (OAuth)
 msgvault add-account personal@gmail.com
-msgvault add-account work@company.com
+msgvault add-account you@acme.com --oauth-app acme   # Workspace org
 
 # IMAP accounts (password)
 msgvault add-imap --host imap.fastmail.com --username you@fastmail.com
@@ -25,7 +25,7 @@ msgvault add-imap --host imap.fastmail.com --username you@fastmail.com
 Gmail accounts open a browser for OAuth authorization. IMAP accounts prompt for a password and test the connection. All accounts share the same SQLite database and attachment storage.
 
 :::tip
-Each account must be listed as a **Test user** in your Google Cloud OAuth consent screen. This is the most common reason a second account fails to authorize.
+Each Gmail account must be listed as a **Test user** in the OAuth consent screen of the app that authorizes it. For Workspace accounts using a named OAuth app, add test users in that org's Google Cloud project. This is the most common reason a second account fails to authorize.
 :::
 
 ## Syncing
