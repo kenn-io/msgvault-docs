@@ -10,17 +10,18 @@ All notable changes to msgvault, grouped by minor release.
 
 **New features**
 
-- Multiple OAuth apps: Google Workspace accounts that require org-specific OAuth credentials can use named apps via `--oauth-app` flag and `[oauth.apps.<name>]` config.
-- `source_conversation_id` (Gmail thread ID) included in `search --json` and `show-message --json` output.
+- Support multiple Google OAuth apps for Google Workspace organizations.
+- Add `source_conversation_id` to `search` and `show-message` JSON output.
 
 **Improvements**
 
-- Show `*` feedback while typing IMAP account passwords during `add-imap`.
+- Show masked IMAP passwords with `*` while typing during account setup.
+- Better protect local data and cache handling when SQLite state is corrupted or analytics cache data is empty.
 
 **Bug fixes**
 
-- Handle SQLite corruption and empty analytics cache states more safely during verification and cache builds.
-- Improve IMAP4rev1 server compatibility by avoiding unsupported `ESEARCH RETURN (ALL)` queries.
+- Fix IMAP host parsing for IPv6 addresses in `add-imap`.
+- Improve IMAP compatibility by removing `ESEARCH RETURN (ALL)` for IMAP4rev1 servers.
 
 ---
 
