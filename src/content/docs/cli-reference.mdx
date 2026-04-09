@@ -353,6 +353,24 @@ msgvault cache-stats
 
 ---
 
+## query
+
+Run arbitrary SQL against the Parquet analytics cache using an in-memory DuckDB engine.
+
+```bash
+msgvault query <sql> [flags]
+```
+
+If the analytics cache is stale, it is automatically rebuilt before the query runs.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--format` | `json` | Output format: `json`, `csv`, or `table` |
+
+See [SQL Queries](/usage/querying/) for available views and example queries.
+
+---
+
 ## mcp
 
 Start the Model Context Protocol server for AI assistant integration.

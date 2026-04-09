@@ -69,6 +69,7 @@ export default defineConfig({
             { label: 'Importing Local Email', slug: 'usage/importing' },
             { label: 'Exporting Data', slug: 'usage/exporting' },
             { label: 'Analytics & Stats', slug: 'usage/analytics' },
+            { label: 'SQL Queries', slug: 'usage/querying' },
             { label: 'Deleting Email', slug: 'usage/deletion' },
             { label: 'Multi-Account', slug: 'usage/multi-account' },
           ],
