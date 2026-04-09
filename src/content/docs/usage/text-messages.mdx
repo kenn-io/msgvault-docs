@@ -1,0 +1,159 @@
+---
+title: Text Messages
+description: Import text messages from WhatsApp, iMessage, and Google Voice into msgvault.
+---
+
+msgvault can import text messages from WhatsApp, iMessage, and Google Voice. Imported texts are stored in the same database as email, and you can browse them in the [TUI](/usage/tui/) by pressing `m` to switch to text mode.
+
+## import-whatsapp
+
+Import messages from a decrypted WhatsApp `msgstore.db` SQLite database.
+
+```bash
+msgvault import-whatsapp <msgstore.db> --phone <your-number>
+```
+
+The `--phone` flag is required and must be in E.164 format (for example, `+447700900000`).
+
+### Flags
+
+| Flag | Required | Description |
+|---|---|---|
+| `--phone` | Yes | Your phone number in E.164 format (must start with `+`) |
+| `--contacts` | No | Path to contacts `.vcf` file for name resolution |
+| `--media-dir` | No | Path to decrypted Media folder for attachments |
+| `--limit` | No | Limit number of messages (for testing) |
+| `--display-name` | No | Display name for the phone owner |
+
+### Examples
+
+```bash
+# Basic import with required phone number
+msgvault import-whatsapp ~/whatsapp/msgstore.db --phone +14155551234
+
+# With contacts file for name resolution
+msgvault import-whatsapp msgstore.db --phone +14155551234 \
+  --contacts contacts.vcf
+
+# With contacts and media
+msgvault import-whatsapp msgstore.db --phone +14155551234 \
+  --contacts contacts.vcf --media-dir ./Media
+```
+
+### Prerequisites
+
+You need a decrypted copy of your WhatsApp `msgstore.db` file. This is the SQLite database where WhatsApp stores all messages on your device. How you obtain the decrypted database depends on your platform; msgvault does not handle decryption itself.
+
+The importer brings in chats, messages, participants, reactions, and attachments (when `--media-dir` is provided).
+
+## import-imessage
+
+Import messages from the local iMessage database on macOS.
+
+```bash
+msgvault import-imessage
+```
+
+By default, the command reads from `~/Library/Messages/chat.db`. No positional arguments are needed.
+
+:::caution
+**Full Disk Access required.** macOS protects `~/Library/Messages/chat.db`. Before running this command, grant Full Disk Access to your terminal app in System Settings > Privacy & Security > Full Disk Access.
+:::
+
+This is a read-only operation. msgvault does not modify your iMessage database.
+
+### Flags
+
+| Flag | Default | Description |
+|---|---|---|
+| `--db-path` | `~/Library/Messages/chat.db` | Path to chat.db |
+| `--before` | — | Only messages before this date (YYYY-MM-DD) |
+| `--after` | — | Only messages after this date (YYYY-MM-DD) |
+| `--limit` | `0` | Limit number of messages (for testing) |
+| `--me` | — | Your phone/email for recipient tracking |
+
+### Examples
+
+```bash
+# Import all iMessages (auto-discovers chat.db)
+msgvault import-imessage
+
+# Import only recent messages
+msgvault import-imessage --after 2024-01-01
+
+# Use a custom database path (e.g., from a backup)
+msgvault import-imessage --db-path /Volumes/Backup/Messages/chat.db
+
+# Set your identity for recipient tracking
+msgvault import-imessage --me +14155551234
+```
+
+## import-gvoice
+
+Import texts, calls, and voicemails from a Google Voice Takeout export.
+
+```bash
+msgvault import-gvoice <takeout-voice-dir>
+```
+
+The directory must be the "Voice" folder from a [Google Takeout](https://takeout.google.com) export. It should contain a `Calls/` subdirectory and a `Phones.vcf` file.
+
+:::note
+Only text messages appear in TUI text mode. Call logs and voicemails are stored but not currently browsable in the TUI.
+:::
+
+### Flags
+
+| Flag | Default | Description |
+|---|---|---|
+| `--before` | — | Only messages before this date (YYYY-MM-DD) |
+| `--after` | — | Only messages after this date (YYYY-MM-DD) |
+| `--limit` | `0` | Limit number of messages (for testing) |
+
+### Examples
+
+```bash
+# Import from Google Takeout Voice directory
+msgvault import-gvoice ~/Downloads/Takeout/Voice
+
+# Import only messages from a date range
+msgvault import-gvoice ~/Downloads/Takeout/Voice \
+  --after 2020-01-01 --before 2024-01-01
+```
+
+### Getting your Google Voice data
+
+1. Go to [Google Takeout](https://takeout.google.com)
+2. Deselect all products, then select only **Google Voice**
+3. Export and download the archive
+4. Extract the zip. The `Voice` folder inside the `Takeout` directory is what you pass to the command.
+
+## Browsing Texts in the TUI
+
+After importing, launch the TUI and press `m` to toggle between Email and Texts mode. Text mode shows a conversations list; select a conversation to drill down into its messages.
+
+```bash
+msgvault tui
+```
+
+Text mode is only available when text data has been imported. See the [TUI documentation](/usage/tui/) for keyboard shortcuts and navigation.
+
+## Deduplication
+
+All three importers are safe to run multiple times. Running the same import again does not create duplicates.
+
+## Resumable Imports
+
+Imports use checkpoint-based resumption. If interrupted (Ctrl+C, power loss), run the same command again and it picks up where it left off.
+
+## After Importing
+
+All three commands rebuild the analytics cache automatically after import. Your imported texts are immediately available for TUI browsing.
+
+```bash
+# Launch the TUI and press 'm' for text mode
+msgvault tui
+
+# View updated archive stats
+msgvault stats
+```

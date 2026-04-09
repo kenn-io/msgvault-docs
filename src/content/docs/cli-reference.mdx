@@ -150,6 +150,70 @@ See [Importing Local Email](/usage/importing/) for usage examples.
 
 ---
 
+## import-whatsapp
+
+Import messages from a decrypted WhatsApp `msgstore.db` SQLite database.
+
+```bash
+msgvault import-whatsapp <msgstore.db> --phone <your-number>
+```
+
+The `--phone` flag is required and must be in E.164 format (e.g., `+447700900000`).
+
+| Flag | Required | Description |
+|---|---|---|
+| `--phone` | Yes | Your phone number in E.164 format (must start with `+`) |
+| `--contacts` | No | Path to contacts `.vcf` file for name resolution |
+| `--media-dir` | No | Path to decrypted Media folder for attachments |
+| `--limit` | No | Limit number of messages (for testing) |
+| `--display-name` | No | Display name for the phone owner |
+
+See [Text Messages](/usage/text-messages/) for usage examples.
+
+---
+
+## import-imessage
+
+Import messages from the local iMessage database on macOS. Requires Full Disk Access in System Settings.
+
+```bash
+msgvault import-imessage
+```
+
+Reads from `~/Library/Messages/chat.db` by default. This is a read-only operation.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--db-path` | `~/Library/Messages/chat.db` | Path to chat.db |
+| `--before` | — | Only messages before this date (YYYY-MM-DD) |
+| `--after` | — | Only messages after this date (YYYY-MM-DD) |
+| `--limit` | `0` | Limit number of messages (for testing) |
+| `--me` | — | Your phone/email for recipient tracking |
+
+See [Text Messages](/usage/text-messages/) for usage examples.
+
+---
+
+## import-gvoice
+
+Import texts, calls, and voicemails from a Google Voice Takeout export.
+
+```bash
+msgvault import-gvoice <takeout-voice-dir>
+```
+
+The directory must be the "Voice" folder from a Google Takeout export, containing `Calls/` and `Phones.vcf`.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--before` | — | Only messages before this date (YYYY-MM-DD) |
+| `--after` | — | Only messages after this date (YYYY-MM-DD) |
+| `--limit` | `0` | Limit number of messages (for testing) |
+
+See [Text Messages](/usage/text-messages/) for usage examples.
+
+---
+
 ## search
 
 Search the archive with Gmail-like query syntax.

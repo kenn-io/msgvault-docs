@@ -67,6 +67,7 @@ export default defineConfig({
           items: [
             { label: 'Searching', slug: 'usage/searching' },
             { label: 'Importing Local Email', slug: 'usage/importing' },
+            { label: 'Text Messages', slug: 'usage/text-messages' },
             { label: 'Exporting Data', slug: 'usage/exporting' },
             { label: 'Analytics & Stats', slug: 'usage/analytics' },
             { label: 'SQL Queries', slug: 'usage/querying' },
