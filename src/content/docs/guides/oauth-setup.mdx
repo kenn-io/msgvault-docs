@@ -1,23 +1,25 @@
 ---
-title: Google OAuth Setup
-description: Create Google Cloud OAuth credentials and authorize msgvault, including headless server setup.
+title: OAuth Setup
+description: Create OAuth credentials for Gmail (Google Cloud) or Microsoft 365 (Azure AD) and authorize msgvault.
 ---
 
-msgvault requires OAuth credentials to access the Gmail API. This guide walks through the complete setup.
+## Google (Gmail)
 
-## Step 1: Create a Google Cloud Project
+msgvault requires OAuth credentials to access the Gmail API. This section walks through the complete setup.
+
+### Step 1: Create a Google Cloud Project
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select an existing one
 3. Note your project ID
 
-## Step 2: Enable the Gmail API
+### Step 2: Enable the Gmail API
 
 1. Navigate to **APIs & Services > Library**
 2. Search for "Gmail API"
 3. Click **Enable**
 
-## Step 3: Configure OAuth Consent Screen
+### Step 3: Configure OAuth Consent Screen
 
 1. Go to **APIs & Services > OAuth consent screen** (Google may call this **Google Auth Platform**)
 2. Choose **External** user type (or **Internal** for Google Workspace)
@@ -35,7 +37,7 @@ msgvault requires OAuth credentials to access the Gmail API. This guide walks th
 The `gmail.modify` scope enables deletion features while sync operations remain read-only. When you first run `delete-staged`, msgvault will prompt you to upgrade to full `mail.google.com` access for batch deletion.
 :::
 
-## Step 4: Create OAuth Client Credentials
+### Step 4: Create OAuth Client Credentials
 
 1. Go to **APIs & Services > Credentials**
 2. Click **Create Credentials > OAuth client ID**
@@ -53,7 +55,7 @@ Never commit `client_secret.json` to version control.
 You must choose **Desktop app** as the client type. Do not use "TVs and Limited Input devices" as Google's device code flow does not support Gmail scopes.
 :::
 
-## Step 5: Configure msgvault
+### Step 5: Configure msgvault
 
 Create `config.toml` in your msgvault data directory:
 
@@ -75,7 +77,7 @@ On Windows, use forward slashes or escaped backslashes for the path:
 client_secrets = "C:/Users/you/Downloads/client_secret.json"
 ```
 
-## Step 6: Add Your Account
+### Step 6: Add Your Account
 
 ```bash
 msgvault add-account you@gmail.com
@@ -83,7 +85,7 @@ msgvault add-account you@gmail.com
 
 This opens your browser to Google's OAuth consent page. Sign in, grant access, and tokens are stored locally in `~/.msgvault/tokens/`.
 
-## Multiple Accounts
+### Multiple Accounts
 
 For personal Gmail accounts, a single `client_secret.json` works for all of them. Each `add-account` call creates a separate token file:
 
@@ -98,7 +100,7 @@ msgvault sync   # syncs all accounts
 Make sure all Gmail addresses you want to sync are listed as **Test users** in your Google Cloud OAuth consent screen (Step 3 above). This is the most common reason a second account fails to authorize.
 :::
 
-### Google Workspace Accounts
+#### Google Workspace Accounts
 
 Many Google Workspace organizations restrict OAuth to apps created within their own org. If you get an "access denied" or "app blocked" error when authorizing a Workspace account with your personal OAuth app, the org likely requires its own app.
 
@@ -135,7 +137,7 @@ To move an account back to the default app:
 msgvault add-account you@acme.com --oauth-app ""      # clears the binding
 ```
 
-## Headless Server Setup
+### Headless Server Setup
 
 When running msgvault on a headless server (SSH, VPS, Docker), there is no browser available for OAuth. Google's device code flow does not support Gmail scopes, so you must authorize on a machine with a browser and copy the token to your server.
 
@@ -170,7 +172,7 @@ Step 3: On the headless server, register the account:
 The token will be detected and the account registered. No browser needed.
 ```
 
-### Step-by-Step
+#### Step-by-Step
 
 1. **On your local machine** (with a browser), install msgvault and run:
    ```bash
@@ -204,3 +206,83 @@ The token file contains OAuth refresh tokens that are automatically renewed. You
 :::note
 Both machines must use the same OAuth client credentials. The token is tied to the OAuth client that created it. If the account uses a named OAuth app (`--oauth-app`), configure the same `[oauth.apps.<name>]` section on both machines.
 :::
+
+## Microsoft 365 (Outlook / Hotmail)
+
+The `add-o365` command connects Outlook.com, Hotmail, Live.com, and Microsoft 365 organizational accounts via OAuth2 with XOAUTH2 IMAP authentication. No app password is needed.
+
+### Prerequisites: Azure AD App Registration
+
+You need to register an application in Microsoft Entra (Azure AD) before using `add-o365`.
+
+1. Go to [Azure Portal](https://portal.azure.com/) and navigate to **Microsoft Entra ID > App registrations > New registration**
+2. Set the fields:
+   - **Name:** `msgvault`
+   - **Supported account types:** "Accounts in any organizational directory and personal Microsoft accounts"
+   - **Redirect URI:** Platform = **Web**, URI = `http://localhost:8089/callback/microsoft`
+3. Click **Register**
+4. Under **API permissions**, click **Add a permission > Microsoft Graph > Delegated permissions**, then add `IMAP.AccessAsUser.All`
+5. Under **Authentication**, enable **Allow public client flows** (required for PKCE)
+6. Copy the **Application (client) ID** from the app's Overview page
+
+### Configure msgvault
+
+Add a `[microsoft]` section to your `config.toml`:
+
+```toml
+[microsoft]
+client_id = "your-azure-app-client-id"
+```
+
+To restrict authorization to a specific organization, set `tenant_id`:
+
+```toml
+[microsoft]
+client_id = "your-azure-app-client-id"
+tenant_id = "your-org-tenant-id"
+```
+
+When `tenant_id` is omitted (or set to `"common"`), both personal Microsoft accounts and organizational accounts can authorize.
+
+### Add Your Account
+
+```bash
+msgvault add-o365 you@outlook.com
+```
+
+This opens your browser for Microsoft OAuth consent. After you authorize, msgvault:
+
+- Validates the token matches the email you specified
+- Auto-detects the correct IMAP host based on account type
+- Configures XOAUTH2 authentication automatically
+
+Personal accounts (hotmail.com, outlook.com, live.com, msn.com) connect to `outlook.office.com`. Organizational accounts (company Microsoft 365) connect to `outlook.office365.com`. This detection is automatic.
+
+To restrict to a specific tenant at authorization time:
+
+```bash
+msgvault add-o365 you@company.com --tenant your-org-tenant-id
+```
+
+### Sync Your Email
+
+After adding the account, sync it the same way as any other account:
+
+```bash
+msgvault sync-full you@outlook.com
+```
+
+### Headless Servers
+
+On a headless server (SSH, VPS, Docker), authorize on a machine with a browser and copy the token file to the server:
+
+1. On your local machine, run `msgvault add-o365 you@outlook.com` and complete the browser flow.
+2. Copy the token to the server:
+   ```bash
+   ssh user@server mkdir -p ~/.msgvault/tokens
+   scp ~/.msgvault/tokens/microsoft_you@outlook.com.json \
+       user@server:~/.msgvault/tokens/
+   ```
+3. On the server, run `msgvault add-o365 you@outlook.com` again. It detects the existing token and registers the account without a browser.
+
+Both machines must use the same `client_id` in their `[microsoft]` config.

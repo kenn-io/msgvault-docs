@@ -30,6 +30,11 @@ client_secrets = "/path/to/client_secret.json"
 [oauth.apps.acme]
 client_secrets = "/path/to/acme_workspace_secret.json"
 
+[microsoft]
+# Azure AD app registration client ID (required for M365)
+client_id = "your-azure-app-client-id"
+# tenant_id = "your-tenant-id"   # optional, default "common"
+
 [sync]
 # Gmail API rate limit (requests per second)
 rate_limit_qps = 5
@@ -93,6 +98,17 @@ Named OAuth apps for Google Workspace organizations that require their own OAuth
 | `client_secrets` | — | Path to the org's `client_secret.json` |
 
 See [OAuth Setup: Google Workspace Accounts](/guides/oauth-setup/#google-workspace-accounts) for when and why you need named apps.
+
+### `[microsoft]`
+
+Configuration for Microsoft 365 / Outlook.com OAuth. Required only if you use `add-o365`.
+
+| Key | Default | Description |
+|---|---|---|
+| `client_id` | — | Azure AD Application (client) ID (required) |
+| `tenant_id` | `common` | Azure AD tenant ID; `common` allows both personal and org accounts |
+
+See [OAuth Setup: Microsoft 365](/guides/oauth-setup/#microsoft-365-outlook--hotmail) for app registration steps.
 
 ### `[sync]`
 
