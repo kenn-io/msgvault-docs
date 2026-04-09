@@ -41,7 +41,7 @@ Then [set up OAuth credentials](/guides/oauth-setup/) and [start syncing](/setup
 
 ## Why msgvault?
 
-Your email and other message data is yours. msgvault downloads a complete local copy of your Gmail (every message, every attachment, every label) then everything runs offline against that archive. Search, analytics, the TUI, and the MCP server all query local SQLite and Parquet files. **Nothing touches the Gmail API outside of sync and deletion commands that you run explicitly.** No background OAuth sessions, no persistent API connections, no risk of an AI assistant or a compromised token silently accessing your live mailbox.
+Your email and message data is yours. msgvault downloads a complete local copy of your email (from Gmail, IMAP, or local archives) and imports text messages from WhatsApp, iMessage, and Google Voice. Then everything runs offline against that archive. Search, analytics, the TUI, and the MCP server all query local SQLite and Parquet files. **Nothing touches the network outside of sync and deletion commands that you run explicitly.** No background OAuth sessions, no persistent API connections, no risk of an AI assistant or a compromised token silently accessing your live mailbox.
 
 Years of PDFs, photos, documents, and spreadsheets buried in your inbox become ordinary files on your filesystem, deduplicated and instantly searchable. Your data is no longer locked behind a web interface or an API. It's just files on disk that you own and control.
 
