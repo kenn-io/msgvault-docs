@@ -125,12 +125,12 @@ Import a local MBOX archive into msgvault.
 msgvault import-mbox <identifier> <export-file>
 ```
 
-The export file may be a plain `.mbox`/`.mbx` file or a `.zip` containing one or more MBOX files.
+The export file may be a plain mbox file (any extension) or a `.zip` containing one or more mbox files.
 
 | Flag | Default | Description |
 |---|---|---|
 | `--source-type` | `mbox` | Source type recorded in database (e.g., `hey` for HEY.com) |
-| `--label` | — | Label to apply to all imported messages |
+| `--label` | — | Label(s) to apply to imported messages (repeatable, or comma-separated) |
 | `--no-resume` | `false` | Start fresh, ignoring interrupted progress |
 | `--checkpoint-interval` | `200` | Save progress every N messages |
 | `--no-attachments` | `false` | Skip writing attachments to disk |
@@ -628,6 +628,46 @@ Print version, commit, build date, and platform information.
 
 ```bash
 msgvault version
+```
+
+---
+
+## completion
+
+Generate a shell completion script.
+
+```bash
+msgvault completion [bash|zsh|fish|powershell]
+```
+
+To load completions:
+
+**Bash:**
+```bash
+source <(msgvault completion bash)
+
+# Permanent (Linux):
+msgvault completion bash > /etc/bash_completion.d/msgvault
+
+# Permanent (macOS with Homebrew):
+msgvault completion bash > $(brew --prefix)/etc/bash_completion.d/msgvault
+```
+
+**Zsh:**
+```bash
+msgvault completion zsh > "${fpath[1]}/_msgvault"
+```
+
+If shell completion is not already enabled, add `autoload -U compinit; compinit` to your `~/.zshrc` first.
+
+**Fish:**
+```bash
+msgvault completion fish > ~/.config/fish/completions/msgvault.fish
+```
+
+**PowerShell:**
+```powershell
+msgvault completion powershell | Out-String | Invoke-Expression
 ```
 
 ---
