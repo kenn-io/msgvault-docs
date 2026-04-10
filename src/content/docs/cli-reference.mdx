@@ -68,6 +68,26 @@ After adding an account, sync it with `msgvault sync-full`. IMAP accounts use th
 
 ---
 
+## add-o365
+
+Add a Microsoft 365 or Outlook.com account via OAuth2 with XOAUTH2 IMAP authentication.
+
+```bash
+msgvault add-o365 <email>
+```
+
+The command opens your browser for Microsoft OAuth consent, then configures IMAP with XOAUTH2 automatically. The correct IMAP host is auto-detected: `outlook.office.com` for personal accounts (hotmail.com, outlook.com, live.com, msn.com) and `outlook.office365.com` for organizational accounts.
+
+Requires a `[microsoft]` section with `client_id` in `config.toml`. See the [OAuth Setup guide](/guides/oauth-setup/#microsoft-365-outlook--hotmail) for Azure AD app registration.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--tenant` | `common` | Azure AD tenant ID (restricts which accounts can authorize) |
+
+After adding the account, sync it with `msgvault sync-full`.
+
+---
+
 ## sync-full
 
 Download all messages from a Gmail account. When called without an email argument, syncs all configured accounts.
@@ -147,6 +167,70 @@ The mail directory should be an Apple Mail mailbox tree containing `.mbox` or `.
 | `--no-attachments` | `false` | Skip writing attachments to disk |
 
 See [Importing Local Email](/usage/importing/) for usage examples.
+
+---
+
+## import-whatsapp
+
+Import messages from a decrypted WhatsApp `msgstore.db` SQLite database.
+
+```bash
+msgvault import-whatsapp <msgstore.db> --phone <your-number>
+```
+
+The `--phone` flag is required and must be in E.164 format (e.g., `+447700900000`).
+
+| Flag | Required | Description |
+|---|---|---|
+| `--phone` | Yes | Your phone number in E.164 format (must start with `+`) |
+| `--contacts` | No | Path to contacts `.vcf` file for name resolution |
+| `--media-dir` | No | Path to decrypted Media folder for attachments |
+| `--limit` | No | Limit number of messages (for testing) |
+| `--display-name` | No | Display name for the phone owner |
+
+See [Text Messages](/usage/text-messages/) for usage examples.
+
+---
+
+## import-imessage
+
+Import messages from the local iMessage database on macOS. Requires Full Disk Access in System Settings.
+
+```bash
+msgvault import-imessage
+```
+
+Reads from `~/Library/Messages/chat.db` by default. This is a read-only operation.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--db-path` | `~/Library/Messages/chat.db` | Path to chat.db |
+| `--before` | — | Only messages before this date (YYYY-MM-DD) |
+| `--after` | — | Only messages after this date (YYYY-MM-DD) |
+| `--limit` | `0` | Limit number of messages (for testing) |
+| `--me` | — | Your phone/email for recipient tracking |
+
+See [Text Messages](/usage/text-messages/) for usage examples.
+
+---
+
+## import-gvoice
+
+Import texts, calls, and voicemails from a Google Voice Takeout export.
+
+```bash
+msgvault import-gvoice <takeout-voice-dir>
+```
+
+The directory must be the "Voice" folder from a Google Takeout export, containing `Calls/` and `Phones.vcf`.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--before` | — | Only messages before this date (YYYY-MM-DD) |
+| `--after` | — | Only messages after this date (YYYY-MM-DD) |
+| `--limit` | `0` | Limit number of messages (for testing) |
+
+See [Text Messages](/usage/text-messages/) for usage examples.
 
 ---
 
@@ -350,6 +434,24 @@ Show statistics about the analytics cache.
 ```bash
 msgvault cache-stats
 ```
+
+---
+
+## query
+
+Run arbitrary SQL against the Parquet analytics cache using an in-memory DuckDB engine.
+
+```bash
+msgvault query <sql> [flags]
+```
+
+If the analytics cache is stale, it is automatically rebuilt before the query runs.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--format` | `json` | Output format: `json`, `csv`, or `table` |
+
+See [SQL Queries](/usage/querying/) for available views and example queries.
 
 ---
 

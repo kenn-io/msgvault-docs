@@ -18,25 +18,25 @@ All message data (metadata, labels, participants, and raw MIME) lives in a singl
 
 ### Core Tables
 
-**sources** -- Gmail accounts with sync state.
+**sources** -- Accounts and import sources with sync state.
 
 | Column | Type | Description |
 |---|---|---|
 | `id` | INTEGER PK | Auto-increment |
-| `source_type` | TEXT | `gmail` |
-| `identifier` | TEXT | Email address |
+| `source_type` | TEXT | `gmail`, `imap`, `mbox`, `apple-mail`, `whatsapp`, `apple_messages`, `google_voice` |
+| `identifier` | TEXT | Email address or phone number |
 | `display_name` | TEXT | Account display name |
-| `sync_cursor` | TEXT | Gmail history ID for incremental sync |
+| `sync_cursor` | TEXT | Sync cursor (Gmail history ID for Gmail accounts) |
 | `last_sync_at` | DATETIME | Last sync timestamp |
 
-**conversations** -- Gmail thread abstraction.
+**conversations** -- Email threads and chat conversations.
 
 | Column | Type | Description |
 |---|---|---|
 | `id` | INTEGER PK | Auto-increment |
 | `source_id` | INTEGER FK | References `sources` |
-| `source_conversation_id` | TEXT | Gmail thread ID |
-| `conversation_type` | TEXT | `email_thread` |
+| `source_conversation_id` | TEXT | Source-specific thread/conversation ID |
+| `conversation_type` | TEXT | `email_thread`, `direct_chat`, `group_chat` |
 | `message_count` | INTEGER | Denormalized count |
 | `last_message_at` | DATETIME | Latest message timestamp |
 
@@ -47,11 +47,11 @@ All message data (metadata, labels, participants, and raw MIME) lives in a singl
 | `id` | INTEGER PK | Auto-increment |
 | `conversation_id` | INTEGER FK | References `conversations` |
 | `source_id` | INTEGER FK | References `sources` |
-| `source_message_id` | TEXT | Gmail message ID |
-| `message_type` | TEXT | `email` |
+| `source_message_id` | TEXT | Source-specific message ID |
+| `message_type` | TEXT | `email`, `whatsapp`, `imessage`, `google_voice_text` |
 | `sent_at` | DATETIME | Send timestamp |
 | `sender_id` | INTEGER FK | References `participants` |
-| `subject` | TEXT | Email subject |
+| `subject` | TEXT | Message subject |
 | `body_text` | TEXT | Plain text content |
 | `snippet` | TEXT | Preview excerpt |
 | `size_estimate` | INTEGER | Approximate size in bytes |
@@ -72,6 +72,7 @@ All message data (metadata, labels, participants, and raw MIME) lives in a singl
 |---|---|---|
 | `id` | INTEGER PK | Auto-increment |
 | `email_address` | TEXT | Email address (unique index) |
+| `phone_number` | TEXT | Phone number (for chat participants) |
 | `display_name` | TEXT | Contact name |
 | `domain` | TEXT | Extracted domain |
 
@@ -159,6 +160,8 @@ analytics/
 ├── labels/
 ├── attachments/
 ├── sources/
+├── conversations/
+├── message_labels/
 └── _last_sync.json
 ```
 

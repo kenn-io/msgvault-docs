@@ -1,6 +1,6 @@
 ---
 title: Interactive TUI
-description: Terminal interface for exploring, filtering, and managing your email archive.
+description: Terminal interface for exploring, filtering, and managing your email and text message archive.
 ---
 
 import Screenshot from '../../../components/Screenshot.astro';
@@ -77,6 +77,23 @@ Press `t` from any view to jump directly to the Time view. The Time view aggrega
   </figure>
 </div>
 
+## Text Messages
+
+Press `m` to toggle between Email and Texts mode. This mode is only available when text data has been imported. See [Text Messages](/usage/text-messages/) for details on importing WhatsApp, iMessage, and Google Voice conversations.
+
+Text mode provides the following view types. Press `g` to cycle through them:
+
+| View | Description |
+|---|---|
+| Conversations | Aggregate by individual conversation |
+| Contacts | Aggregate by contact phone number or identifier |
+| Contact Names | Aggregate by contact display name (falls back to phone/ID when unavailable) |
+| Sources | Aggregate by text service provider (WhatsApp, iMessage, Google Voice) |
+| Labels | Aggregate by custom labels or categories |
+| Time | Aggregate by time period (year/month/day) |
+
+Navigation and interaction in Text mode work the same as Email mode. Press `Enter` to drill into a conversation and view individual messages. Press `Esc` or `Backspace` to go back. Use `g` to re-aggregate from a drill-down view, `/` to search, and `f` to filter. The stats display shows message count and total size for text conversations.
+
 ## Drill-down and Sub-grouping
 
 Press `Enter` to drill into any row. For example, selecting a sender shows their individual messages. Press `Esc` or `Backspace` to go back.
@@ -138,6 +155,7 @@ Press `Esc` to return to the message list.
 | `Enter` | Drill down into selection |
 | `T` | View full email thread |
 | `Esc` / `Backspace` | Go back |
+| `m` | Toggle between Email and Texts mode |
 | `g` | Cycle view mode |
 | `s` | Cycle sort field (Name / Count / Size) |
 | `v` | Reverse sort direction |

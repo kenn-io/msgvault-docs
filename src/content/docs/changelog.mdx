@@ -5,6 +5,35 @@ description: Release history for msgvault
 
 All notable changes to msgvault, grouped by minor release.
 
+## 0.12
+<small>2026-04-09</small>
+
+**New features**
+
+- SQL query interface via `msgvault query`. Run arbitrary SQL against DuckDB over Parquet with `--format json|csv|table`. See [SQL Queries](/usage/querying/).
+- Microsoft 365 OAuth2 support via `msgvault add-o365` for Outlook.com and organizational accounts. Auto-detects personal vs. org IMAP hosts.
+- Text message import: `import-whatsapp`, `import-imessage`, and `import-gvoice` for WhatsApp, iMessage, and Google Voice. See [Text Messages](/usage/text-messages/).
+- TUI text mode: press `m` to toggle between Email and Texts for browsing imported text conversations.
+- `--after` and `--before` date filters for `sync-full` with IMAP accounts.
+- CC and BCC recipients exposed in the message API responses.
+- Claude Code skill for querying the archive via SQL views.
+
+**Improvements**
+
+- `delete-staged` now supports IMAP accounts (uses `UID STORE \Deleted` + `UID EXPUNGE`).
+- Analytics cache is automatically rebuilt after write operations (sync, import, delete-staged) so stats stay current.
+- `msgvault query` auto-rebuilds a stale cache before executing SQL.
+- Improved archive query views and text-message search support.
+
+**Bug fixes**
+
+- `from:domain.com` search now matches domain patterns automatically for common TLDs. Uncommon TLDs still require the explicit `@` prefix (`from:@brand.pizza`).
+- Wait for the IMAP server greeting before authenticating, fixing `unexpected EOF` errors with OAuth proxies.
+- Fix label name conflict handling when ensuring Gmail labels (use `ON CONFLICT` upsert).
+- Open the MCP database in read-only mode to prevent concurrent session hangs when multiple AI sessions query the archive.
+
+---
+
 ## 0.11
 <small>2026-03-24</small>
 

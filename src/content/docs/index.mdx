@@ -1,6 +1,6 @@
 ---
 title: msgvault
-description: Offline email archive with full-text search, interactive TUI, and multi-account support. Import from Gmail, MBOX, and Apple Mail.
+description: Offline email and message archive with full-text search, interactive TUI, and multi-account support. Import from Gmail, IMAP, MBOX, Apple Mail, WhatsApp, iMessage, and Google Voice.
 template: doc
 hero:
   image:
@@ -22,7 +22,7 @@ hero:
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-Supports Gmail sync, MBOX import, and Apple Mail import. IMAP support is coming soon. WhatsApp and other messaging platforms are also planned.
+Supports Gmail sync, IMAP, MBOX import, Apple Mail import, and text message import (WhatsApp, iMessage, Google Voice).
 
 Read the [Introduction](/introduction/) to learn more about why this project was created.
 
@@ -41,15 +41,15 @@ Then [set up OAuth credentials](/guides/oauth-setup/) and [start syncing](/setup
 
 ## Why msgvault?
 
-Your email and other message data is yours. msgvault downloads a complete local copy of your Gmail (every message, every attachment, every label) then everything runs offline against that archive. Search, analytics, the TUI, and the MCP server all query local SQLite and Parquet files. **Nothing touches the Gmail API outside of sync and deletion commands that you run explicitly.** No background OAuth sessions, no persistent API connections, no risk of an AI assistant or a compromised token silently accessing your live mailbox.
+Your email and message data is yours. msgvault downloads a complete local copy of your email (from Gmail, IMAP, or local archives) and imports text messages from WhatsApp, iMessage, and Google Voice. Then everything runs offline against that archive. Search, analytics, the TUI, and the MCP server all query local SQLite and Parquet files. **Nothing touches the network outside of sync and deletion commands that you run explicitly.** No background OAuth sessions, no persistent API connections, no risk of an AI assistant or a compromised token silently accessing your live mailbox.
 
 Years of PDFs, photos, documents, and spreadsheets buried in your inbox become ordinary files on your filesystem, deduplicated and instantly searchable. Your data is no longer locked behind a web interface or an API. It's just files on disk that you own and control.
 
 ## Features
 
 <CardGrid>
-  <Card title="Full Gmail Backup" icon="document">
-    Downloads complete messages including raw MIME, labels, metadata, and every attachment. Every PDF, photo, spreadsheet, and document you've ever received or sent is extracted and stored locally, deduplicated by content hash. Once synced, everything works offline.
+  <Card title="Full Email Backup" icon="document">
+    Downloads complete messages from Gmail or any IMAP server, including raw MIME, labels, metadata, and every attachment. Every PDF, photo, spreadsheet, and document you've ever received or sent is extracted and stored locally, deduplicated by content hash. Once synced, everything works offline.
   </Card>
   <Card title="Lightning-Fast TUI" icon="laptop">
     Explore hundreds of thousands of messages with instant aggregation and drill-down. Powered by DuckDB over Parquet, hundreds of times faster than SQL JOINs, in a small footprint.
@@ -58,7 +58,7 @@ Years of PDFs, photos, documents, and spreadsheets buried in your inbox become o
     SQLite FTS5-powered search with Gmail-like query syntax. Search by sender, date, label, size, attachments, and more.
   </Card>
   <Card title="Multi-Account" icon="add-document">
-    Archive multiple Gmail accounts in a single database with cross-account search.
+    Archive multiple email accounts (Gmail and IMAP) in a single database with cross-account search.
   </Card>
   <Card title="Incremental Sync" icon="rocket">
     Uses Gmail History API for efficient updates after initial full sync. Resumable checkpoints for interrupted syncs.
@@ -70,10 +70,10 @@ Years of PDFs, photos, documents, and spreadsheets buried in your inbox become o
     REST API for programmatic access to your archive. Optional cron-based background sync scheduling. Build dashboards, automations, and integrations.
   </Card>
   <Card title="Local Import" icon="open-book">
-    Import MBOX archives and Apple Mail `.emlx` exports from any email provider. Messages are deduplicated, fully indexed, and searchable alongside your Gmail data.
+    Import MBOX archives, Apple Mail `.emlx` exports, and text messages from WhatsApp, iMessage, and Google Voice. Messages are deduplicated, fully indexed, and searchable alongside your email data.
   </Card>
   <Card title="Safe Deletion" icon="warning">
-    Stage messages for deletion in the TUI or via AI assistant, review manifests, then permanently delete from Gmail.
+    Stage messages for deletion in the TUI or via AI assistant, review manifests, then permanently delete from Gmail or IMAP provider.
   </Card>
 </CardGrid>
 

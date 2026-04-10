@@ -3,7 +3,7 @@ title: Architecture Overview
 description: Package structure and data flow.
 ---
 
-msgvault syncs your Gmail or IMAP accounts to a local SQLite database, the only step that touches the network. You can also import local MBOX archives and Apple Mail exports. Everything else (search, analytics, the TUI, and the MCP server) runs entirely offline against SQLite, Parquet, and local attachment files.
+msgvault syncs your Gmail or IMAP accounts to a local SQLite database, the only step that touches the network. You can also import local MBOX archives, Apple Mail exports, and text messages from WhatsApp, iMessage, and Google Voice. Everything else (search, analytics, the TUI, and the MCP server) runs entirely offline against SQLite, Parquet, and local attachment files.
 
 <img src="/how-it-works.svg" alt="msgvault architecture: Gmail API syncs to SQLite, then offline Parquet analytics, FTS5 search, TUI, and MCP Server" style="width: 100%; max-width: 960px; margin: 1.5rem auto; display: block;" />
 
@@ -26,6 +26,10 @@ msgvault/
 │   ├── emlx/                # Apple Mail .emlx parser
 │   ├── applemail/           # Apple Mail account discovery
 │   ├── remote/              # Remote API engine for TUI
+│   ├── whatsapp/            # WhatsApp backup import
+│   ├── imessage/            # iMessage import
+│   ├── gvoice/              # Google Voice Takeout import
+│   ├── microsoft/           # Microsoft 365 OAuth
 │   ├── oauth/               # OAuth2 flows (browser + device)
 │   └── mime/                # MIME parsing
 ├── go.mod
@@ -50,6 +54,10 @@ msgvault/
 | `internal/query` | DuckDB engine over Parquet files, SQLite fallback |
 | `internal/tui` | Bubble Tea model, lipgloss-styled views |
 | `internal/deletion` | Deletion staging, manifest generation |
+| `internal/whatsapp` | WhatsApp backup parsing and import |
+| `internal/imessage` | iMessage database import |
+| `internal/gvoice` | Google Voice Takeout parsing and import |
+| `internal/microsoft` | Microsoft 365 OAuth flow |
 | `internal/mime` | MIME message parsing, charset detection |
 
 ## Design Decisions

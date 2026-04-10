@@ -104,6 +104,7 @@ Paginated message list.
       "subject": "Q4 Planning",
       "from": "alice@example.com",
       "to": ["bob@example.com"],
+      "cc": ["carol@example.com"],
       "sent_at": "2024-10-15T09:30:00Z",
       "snippet": "Here's the draft for Q4...",
       "labels": ["INBOX", "IMPORTANT"],
@@ -128,6 +129,8 @@ Full message details including body and attachment metadata.
   "subject": "Q4 Planning",
   "from": "alice@example.com",
   "to": ["bob@example.com"],
+  "cc": ["carol@example.com"],
+  "bcc": ["dave@example.com"],
   "sent_at": "2024-10-15T09:30:00Z",
   "snippet": "Here's the draft for Q4...",
   "labels": ["INBOX", "IMPORTANT"],
@@ -143,6 +146,8 @@ Full message details including body and attachment metadata.
   ]
 }
 ```
+
+The `cc` and `bcc` fields are included when the message has recipients of that type. They are omitted from the JSON response when empty.
 
 ---
 
@@ -170,6 +175,7 @@ Full-text search using the same query syntax as `msgvault search`.
       "subject": "Q4 Planning",
       "from": "alice@example.com",
       "to": ["bob@example.com"],
+      "cc": ["carol@example.com"],
       "sent_at": "2024-10-15T09:30:00Z",
       "snippet": "Here's the draft for Q4...",
       "labels": ["INBOX", "IMPORTANT"],

@@ -67,8 +67,10 @@ export default defineConfig({
           items: [
             { label: 'Searching', slug: 'usage/searching' },
             { label: 'Importing Local Email', slug: 'usage/importing' },
+            { label: 'Text Messages', slug: 'usage/text-messages' },
             { label: 'Exporting Data', slug: 'usage/exporting' },
             { label: 'Analytics & Stats', slug: 'usage/analytics' },
+            { label: 'SQL Queries', slug: 'usage/querying' },
             { label: 'Deleting Email', slug: 'usage/deletion' },
             { label: 'Multi-Account', slug: 'usage/multi-account' },
           ],
@@ -76,7 +78,7 @@ export default defineConfig({
         {
           label: 'Guides',
           items: [
-            { label: 'Google OAuth Setup', slug: 'guides/oauth-setup' },
+            { label: 'OAuth Setup', slug: 'guides/oauth-setup' },
             { label: 'Remote Deployment', slug: 'guides/remote-deployment' },
             { label: 'Verify Integrity', slug: 'guides/verification' },
           ],
