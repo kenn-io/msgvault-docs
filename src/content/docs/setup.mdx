@@ -19,6 +19,10 @@ powershell -ExecutionPolicy ByPass -c "irm https://msgvault.io/install.ps1 | iex
 
 The installer detects your OS and architecture, downloads the latest release from [GitHub Releases](https://github.com/wesm/msgvault/releases), verifies the SHA-256 checksum, and installs the binary.
 
+:::tip[Running on a headless server?]
+msgvault works on headless machines (SSH, VPS, NAS, Docker), but OAuth requires a browser for the initial authorization. You'll authorize on your local machine and copy the token file to the server. See [Headless Server Setup](/guides/oauth-setup/#headless-server-setup) for the copy-token workflow, or jump to the [Remote Deployment](/guides/remote-deployment/) guide for a full NAS/server setup with Docker Compose.
+:::
+
 Verify the installation:
 
 ```bash
@@ -189,6 +193,24 @@ msgvault sync-full you@gmail.com
 The initial full sync downloads every message and attachment from Gmail, so it can take a while. In testing we have observed roughly 50 messages per second on fast internet, but the Gmail API has per-user quotas that may throttle throughput further. An account with hundreds of thousands of messages and large attachments may take several hours; an account with millions of messages could take significantly longer. We recommend starting with `--limit` or a date range to verify everything works before kicking off the full run.
 
 The good news: syncs are resumable (see below), and once the initial sync is complete, incremental syncs only fetch new and changed messages, which is much faster.
+
+### Disk Usage
+
+msgvault stores raw MIME data compressed with zlib (typically 3-5x compression). As a rough guide:
+
+| Gmail usage (Settings → Storage) | SQLite DB on disk | Parquet cache | Attachments |
+|---|---|---|---|
+| 5 GB | ~1-2 GB | < 10 MB | varies |
+| 25 GB | ~5-10 GB | < 50 MB | varies |
+| 100 GB | ~20-40 GB | < 100 MB | varies |
+
+Gmail's "storage used" number includes attachments at full size. Your on-disk footprint depends on the ratio of message text to attachments:
+
+- **Message metadata + bodies** go into the SQLite database, compressed ~3-5x.
+- **Attachments** are extracted and stored as-is (PDFs, images, etc. are already compressed). Identical attachments across messages are deduplicated by content hash.
+- **Parquet analytics cache** is a lightweight projection for the TUI — typically a few MB even for large archives.
+
+Use `--limit` or a date range for your first sync to gauge the ratio for your mailbox before committing to a full sync. After syncing, `msgvault stats` shows the actual sizes. See [Data Storage](/architecture/storage/) for details on compression and storage layers.
 
 ### Full Sync Flags
 
