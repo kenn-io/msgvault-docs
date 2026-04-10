@@ -1,15 +1,13 @@
 /* msgvault monochrome terminal theme */
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
-
 :root {
-  /* Typography */
-  --sl-font: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --sl-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  /* Typography - system font for body, monospace for code */
+  --sl-font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --sl-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --sl-text-body: 1rem;
-  --sl-text-code: 1rem;
-  --sl-text-code-sm: 1rem;
-  --sl-line-height: 1.45;
+  --sl-text-code: 0.9rem;
+  --sl-text-code-sm: 0.85rem;
+  --sl-line-height: 1.6;
 
   /* Colors - pure grayscale */
   --sl-color-accent-low: #1a1a1a;
@@ -74,14 +72,13 @@
   --sl-color-text-link: #c0c0c0;
 }
 
-/* Base font size */
 html {
-  font-size: 15px;
+  font-size: 16px;
 }
 
-/* Content area compact padding */
+/* Content area padding */
 .content-panel {
-  padding-inline: 1.5rem !important;
+  padding-inline: 2rem !important;
 }
 
 /* Code blocks */
@@ -137,15 +134,14 @@ h2 {
   padding-bottom: 0.3em;
 }
 
-/* Tables - dense */
 table {
   border-collapse: collapse;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 
 th, td {
   border: 1px solid #2a2a2a;
-  padding: 0.35em 0.75em !important;
+  padding: 0.5em 0.75em !important;
   padding-inline-start: 0.75em !important;
   padding-inline-end: 0.75em !important;
   white-space: normal !important;
@@ -234,24 +230,6 @@ nav.sidebar .top-level > li > a span {
   letter-spacing: 0.05em;
 }
 
-/* Scrollbar - thin */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #0a0a0a;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #2a2a2a;
-  border-radius: 0;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #555555;
-}
 
 /* Selection */
 ::selection {
