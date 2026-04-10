@@ -3,7 +3,32 @@ title: Changelog
 description: Release history for msgvault
 ---
 
-All notable changes to msgvault, grouped by minor release.
+All notable changes to msgvault, grouped by release.
+
+## 0.12.1
+<small>2026-04-10</small>
+
+**New features**
+
+- Shell completion via `msgvault completion` for Bash, Zsh, Fish, and PowerShell.
+- `MSGVAULT_IMAP_PASSWORD` environment variable and stdin piping for non-interactive `add-imap` (Docker, CI).
+- Advanced search: word-boundary regex matching replaces ILIKE substring matching across all search paths, and FTS5 prefix search for the SQLite full-text index.
+- Expanded store API with structured query parsing for search (`SearchMessagesQuery`).
+
+**Improvements**
+
+- Search result quality: text matching switched from ILIKE to word-boundary regex, reducing false positives from substring matches. SQLite aggregate sort ties are broken deterministically by key.
+- Nix flake packaging metadata updated for 0.12.1.
+- Docker image switched to `wolfi-base` with `libstdc++` for CGO/DuckDB compatibility, non-root user, and health check.
+
+**Bug fixes**
+
+- IMAP label handling: standard folders (Sent, Drafts, Trash, Junk, etc.) are now classified as system labels via RFC 6154 attributes and fallback name matching.
+- `import-mbox` accepts plain mbox files with any extension (ZIP entries still require `.mbox`/`.mbx`), `--label` is repeatable/comma-separated, and re-imports update labels on existing messages instead of silently skipping.
+- API search now uses the full structured query parser (operators like `from:`, `subject:`, date/size filters) instead of plain-text matching.
+- `completion` command registered correctly in the CLI command tree.
+
+---
 
 ## 0.12
 <small>2026-04-09</small>

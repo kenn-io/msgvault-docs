@@ -9,7 +9,7 @@ Imported messages are stored in the same database as Gmail messages. You can sea
 
 ## import-mbox
 
-Import a standard [MBOX](https://en.wikipedia.org/wiki/Mbox) file or a `.zip` archive containing one or more MBOX files.
+Import a standard [MBOX](https://en.wikipedia.org/wiki/Mbox) file (any extension) or a `.zip` archive containing one or more MBOX files.
 
 ```bash
 msgvault import-mbox <identifier> <export-file>
@@ -35,7 +35,7 @@ msgvault import-mbox you@hey.com hey-export.zip --source-type hey --label hey
 | Flag | Default | Description |
 |---|---|---|
 | `--source-type` | `mbox` | Source type recorded in the database (e.g., `hey` for HEY.com exports) |
-| `--label` | — | Label to apply to all imported messages |
+| `--label` | — | Label(s) to apply to imported messages (repeatable, or comma-separated) |
 | `--no-resume` | `false` | Start fresh instead of resuming an interrupted import |
 | `--checkpoint-interval` | `200` | Save progress every N messages |
 | `--no-attachments` | `false` | Skip writing attachments to disk (messages still record attachment metadata) |
@@ -53,7 +53,7 @@ Most email providers offer an MBOX export option:
 
 The importer accepts:
 
-- Plain `.mbox` or `.mbx` files (standard mboxo/mboxrd format)
+- Plain mbox files with any extension (standard mboxo/mboxrd format)
 - `.zip` archives containing one or more `.mbox` or `.mbx` files
 
 ZIP archives are extracted to a cache directory and reused on subsequent runs, so re-importing the same zip does not re-extract.
