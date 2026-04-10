@@ -11,19 +11,20 @@ All notable changes to msgvault, grouped by release.
 **New features**
 
 - Shell completion via `msgvault completion` for Bash, Zsh, Fish, and PowerShell.
-- Advanced search: word-boundary regex matching, improved FTS5 prefix search, snippets in fast search results, and deterministic sort ordering.
-- Expanded store API with structured query parsing for search and direct message access.
+- `MSGVAULT_IMAP_PASSWORD` environment variable and stdin piping for non-interactive `add-imap` (Docker, CI).
+- Advanced search: word-boundary regex matching, improved FTS5 prefix search, and snippets in fast search results.
+- Expanded store API with structured query parsing for search (`SearchMessagesQuery`).
 
 **Improvements**
 
-- Search result quality: snippets now surface in aggregate/fast-path queries, and sort ties are broken deterministically by key.
+- Search result quality: snippets now surface in aggregate/fast-path queries. SQLite aggregate sort ties are broken deterministically by key.
 - Nix flake packaging metadata updated for 0.12.1.
 - Docker image switched to `wolfi-base` with `libstdc++` for CGO/DuckDB compatibility, non-root user, and health check.
 
 **Bug fixes**
 
 - IMAP label handling: standard folders (Sent, Drafts, Trash, Junk, etc.) are now classified as system labels via RFC 6154 attributes and fallback name matching.
-- `import-mbox` accepts files with any extension (not just `.mbox`/`.mbx`), `--label` is repeatable/comma-separated, and re-imports update labels on existing messages instead of silently skipping.
+- `import-mbox` accepts plain mbox files with any extension (ZIP entries still require `.mbox`/`.mbx`), `--label` is repeatable/comma-separated, and re-imports update labels on existing messages instead of silently skipping.
 - API search now uses the full structured query parser (operators like `from:`, `subject:`, date/size filters) instead of plain-text matching.
 - `completion` command registered correctly in the CLI command tree.
 

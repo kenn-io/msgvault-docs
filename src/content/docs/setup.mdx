@@ -125,7 +125,7 @@ To sync mail from a non-Gmail provider (Fastmail, Outlook, Yahoo, self-hosted, e
 msgvault add-imap --host imap.fastmail.com --username you@fastmail.com
 ```
 
-You will be prompted for your password. The command tests the connection before saving credentials. Use an app-specific password if your provider supports them.
+You will be prompted for your password (or set `MSGVAULT_IMAP_PASSWORD` / pipe via stdin for scripting). The command tests the connection before saving credentials. Use an app-specific password if your provider supports them.
 
 Common IMAP servers:
 

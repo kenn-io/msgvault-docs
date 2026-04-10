@@ -52,7 +52,15 @@ Add an IMAP account for syncing mail from any standard IMAP server.
 msgvault add-imap --host <hostname> --username <email>
 ```
 
-The command prompts interactively for your password (never accepted as a flag to avoid shell history exposure). It tests the connection before saving credentials.
+The command prompts interactively for your password (never accepted as a flag to avoid shell history exposure). For scripting or Docker, set `MSGVAULT_IMAP_PASSWORD` or pipe via stdin:
+
+```bash
+MSGVAULT_IMAP_PASSWORD="..." msgvault add-imap --host imap.example.com --username user@example.com
+# or
+echo "$PASS" | msgvault add-imap --host imap.example.com --username user@example.com
+```
+
+It tests the connection before saving credentials.
 
 | Flag | Default | Description |
 |---|---|---|
@@ -62,7 +70,7 @@ The command prompts interactively for your password (never accepted as a flag to
 | `--starttls` | `false` | Use STARTTLS instead of implicit TLS |
 | `--no-tls` | `false` | Disable TLS entirely (plaintext, not recommended) |
 
-Credentials are stored in `tokens/imap_<hash>.json` with restricted file permissions. Use app-specific passwords when your provider supports them.
+Credentials are stored in `tokens/imap_<hash>.json` with restricted file permissions (0600). Use app-specific passwords when your provider supports them.
 
 After adding an account, sync it with `msgvault sync-full`. IMAP accounts use the same `sync` and `sync-full` commands as Gmail. See [Setup Guide](/setup/#add-an-imap-account) for a walkthrough.
 
@@ -125,7 +133,7 @@ Import a local MBOX archive into msgvault.
 msgvault import-mbox <identifier> <export-file>
 ```
 
-The export file may be a plain mbox file (any extension) or a `.zip` containing one or more mbox files.
+The export file may be a plain mbox file (any extension) or a `.zip` containing one or more `.mbox`/`.mbx` files.
 
 | Flag | Default | Description |
 |---|---|---|
