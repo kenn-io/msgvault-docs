@@ -9,8 +9,13 @@ description: Complete command reference for all msgvault commands.
 |---|---|
 | `--config` | Path to config file (default: `~/.msgvault/config.toml`) |
 | `--home` | Home directory for all data (overrides `MSGVAULT_HOME`) |
-| `-v`, `--verbose` | Verbose output |
+| `-v`, `--verbose` | Verbose output (implies `--log-level=debug`) |
 | `--local` | Force local database mode when `[remote]` is configured |
+| `--log-file <path>` | Override log file path (default: `<data_dir>/logs/msgvault-YYYY-MM-DD.log`) |
+| `--log-level <level>` | Log level: `debug`, `info`, `warn`, `error` (default: `info`) |
+| `--no-log-file` | Disable file logging for this run (stderr output stays on) |
+| `--log-sql` | Log every SQL query at info level (verbose, for debugging) |
+| `--log-sql-slow-ms <ms>` | Slow query threshold in ms (default: 100; 0 uses built-in default) |
 | `--help` | Show help |
 
 ---
@@ -676,6 +681,45 @@ msgvault completion fish > ~/.config/fish/completions/msgvault.fish
 **PowerShell:**
 ```powershell
 msgvault completion powershell | Out-String | Invoke-Expression
+```
+
+---
+
+## logs
+
+View and tail structured log files. File logging must be enabled first (see [Configuration: Log](/configuration/#log)).
+
+```bash
+msgvault logs [flags]
+```
+
+| Flag | Default | Description |
+|---|---|---|
+| `-f`, `--follow` | `false` | Follow today's log file as new lines are written |
+| `-n`, `--lines` | `50` | Number of trailing lines to show before following |
+| `--run-id <id>` | — | Filter to a single run (matches on prefix) |
+| `--level <level>` | — | Filter by log level: `debug`, `info`, `warn`, `error` |
+| `--grep <string>` | — | Substring filter applied to the raw JSON record |
+| `--all` | `false` | Read every log file in the logs directory, not just today's |
+| `--path` | `false` | Print the log directory path and exit |
+
+Examples:
+
+```bash
+# Last 50 lines of today's log
+msgvault logs
+
+# Follow live
+msgvault logs -n 200 -f
+
+# Filter to a single run by its correlation ID
+msgvault logs --run-id a1b2c3
+
+# Only errors
+msgvault logs --level error
+
+# Substring search across all log files
+msgvault logs --all --grep deduplicate
 ```
 
 ---

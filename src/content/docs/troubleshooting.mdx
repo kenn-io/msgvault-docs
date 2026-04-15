@@ -237,6 +237,49 @@ api_port = 9090
 
 The API server enforces a rate limit of 10 requests per second per client IP. If you are hitting this limit, space out your requests or check the `Retry-After` response header for the wait duration.
 
+## Using Logs for Troubleshooting
+
+Enable file logging to capture detailed diagnostics. Add this to your `config.toml`:
+
+```toml
+[log]
+enabled = true
+```
+
+Then reproduce the issue. Each run gets a unique correlation ID (`run_id`) so you can isolate its log lines:
+
+```bash
+# View today's log
+msgvault logs
+
+# Follow live while reproducing an issue
+msgvault logs -f
+
+# Filter to a specific run
+msgvault logs --run-id <id>
+
+# Show only errors
+msgvault logs --level error
+```
+
+For one-off debugging without changing config, use the `--log-file` flag:
+
+```bash
+msgvault sync --log-file /tmp/debug.log --log-level debug
+```
+
+To trace slow SQL queries, lower the threshold or enable full SQL tracing:
+
+```bash
+# Log queries slower than 50ms
+msgvault tui --log-sql-slow-ms 50
+
+# Log every SQL query (verbose)
+msgvault tui --log-sql
+```
+
+Log files are stored in `<data_dir>/logs/` by default. Run `msgvault logs --path` to print the directory. See [Configuration: Log](/configuration/#log) for all options.
+
 ## Still Stuck?
 
 Ask for help on the [msgvault Discord server](https://discord.gg/fDnmxB8Wkq) or [open an issue on GitHub](https://github.com/wesm/msgvault/issues).

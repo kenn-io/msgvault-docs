@@ -5,6 +5,24 @@ description: Release history for msgvault
 
 All notable changes to msgvault, grouped by release.
 
+## 0.13
+<small>2026-04-14</small>
+
+**New features**
+
+- Structured file logging with per-run correlation IDs. Every CLI invocation gets a unique `run_id` on every log line, making it easy to trace a single run across shared log files. New `msgvault logs` command for viewing and tailing logs. File logging is opt-in; see [Configuration: Log](/configuration/#log) for setup.
+
+**Improvements**
+
+- The terminal UI inherits your terminal background colors instead of forcing its own, so custom terminal themes (Dracula, Solarized, Nord, etc.) work naturally.
+
+**Bug fixes**
+
+- Improve full-text search performance across local archives.
+- Improve terminal UI stability during rapid interactions (fix race condition where switching views could briefly show stale data).
+
+---
+
 ## 0.12.1
 <small>2026-04-10</small>
 
