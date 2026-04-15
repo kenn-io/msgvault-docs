@@ -35,6 +35,14 @@ client_secrets = "/path/to/acme_workspace_secret.json"
 client_id = "your-azure-app-client-id"
 # tenant_id = "your-tenant-id"   # optional, default "common"
 
+[log]
+# Persistent structured file logging (opt-in)
+enabled = true
+# dir = "/path/to/logs"        # default: <data_dir>/logs
+# level = "info"                # debug, info, warn, error
+# sql_trace = false             # log every SQL query (verbose)
+# sql_slow_ms = 100             # slow query threshold in ms
+
 [sync]
 # Gmail API rate limit (requests per second)
 rate_limit_qps = 5
@@ -109,6 +117,22 @@ Configuration for Microsoft 365 / Outlook.com OAuth. Required only if you use `a
 | `tenant_id` | `common` | Azure AD tenant ID; `common` allows both personal and org accounts |
 
 See [OAuth Setup: Microsoft 365](/guides/oauth-setup/#microsoft-365-outlook--hotmail) for app registration steps.
+
+### `[log]`
+
+Structured file logging. Disabled by default. Enable it to get persistent, machine-readable logs for troubleshooting. Every CLI invocation writes a unique `run_id` on every log line so you can trace a single run across shared daily log files.
+
+| Key | Default | Description |
+|---|---|---|
+| `enabled` | `false` | Turn on persistent file logging. Setting `dir` also enables it implicitly. |
+| `dir` | `<data_dir>/logs` | Directory for log files |
+| `level` | `info` | Log level: `debug`, `info`, `warn`, `error` |
+| `sql_trace` | `false` | Log every SQL query at info level (verbose, for debugging) |
+| `sql_slow_ms` | `100` | Threshold in ms above which SQL queries are logged at warn level. `0` uses the built-in default (100 ms). |
+
+Log files are named `msgvault-YYYY-MM-DD.log` (UTC date), written as newline-delimited JSON. When a daily log exceeds 50 MiB it rotates to `.log.1`, `.log.2`, etc. (up to 5 rotated files).
+
+Use `msgvault logs` to view and tail log files. See [CLI Reference: logs](/cli-reference/#logs).
 
 ### `[sync]`
 
@@ -186,4 +210,5 @@ All data lives under the msgvault home directory (`~/.msgvault` on macOS/Linux, 
 | `msgvault.db` | SQLite database (system of record) |
 | `attachments/` | Content-addressed attachment files |
 | `tokens/` | OAuth tokens per account |
+| `logs/` | Structured log files (when [file logging](/configuration/#log) is enabled) |
 | `analytics/` | Parquet cache files for TUI |
