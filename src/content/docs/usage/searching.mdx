@@ -86,3 +86,11 @@ Add `--json` for machine-readable output:
 ```bash
 msgvault search from:alice@example.com --json
 ```
+
+## Semantic / Hybrid Search
+
+The same `msgvault search` command supports semantic search when the
+server is configured with an embedding endpoint. Pass
+`--mode vector` for pure semantic search, or `--mode hybrid` to fuse
+BM25 and vector ranking. See [Vector Search](/usage/vector-search/)
+for setup, initial embedding, and incremental update workflows.

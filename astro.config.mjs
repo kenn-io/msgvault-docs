@@ -66,6 +66,7 @@ export default defineConfig({
           label: 'CLI Usage',
           items: [
             { label: 'Searching', slug: 'usage/searching' },
+            { label: 'Vector Search', slug: 'usage/vector-search' },
             { label: 'Importing Local Email', slug: 'usage/importing' },
             { label: 'Text Messages', slug: 'usage/text-messages' },
             { label: 'Exporting Data', slug: 'usage/exporting' },
