@@ -113,7 +113,7 @@ Practical guidance:
 - **Self-hosted llama.cpp with an 8k-context GGUF:** match the
   context window; 24000 is a reasonable default.
 
-If `msgvault embed` fails with repeated `HTTP 400` warnings, check
+If `msgvault build-embeddings` fails with repeated `HTTP 400` warnings, check
 the embedder's logs — `the input length exceeds the context length`
 confirms you need to lower `max_input_chars`.
 
@@ -123,7 +123,7 @@ Once vector search is enabled and your email is synced, embed the
 archive:
 
 ```bash
-msgvault embed --full-rebuild --yes
+msgvault build-embeddings --full-rebuild --yes
 ```
 
 This creates a new **building generation**, seeds the pending queue
@@ -134,9 +134,9 @@ rebuild is in flight, `mode=vector` and `mode=hybrid` return
 `index_building` — use `mode=fts` for the interim.
 
 <Aside type="tip">
-You can interrupt and resume. Each invocation of `msgvault embed`
+You can interrupt and resume. Each invocation of `msgvault build-embeddings`
 processes whatever is currently pending and activates the generation
-when the queue reaches zero. `Ctrl+C` is safe; run `msgvault embed`
+when the queue reaches zero. `Ctrl+C` is safe; run `msgvault build-embeddings`
 again and it picks up from where it left off.
 </Aside>
 
@@ -155,7 +155,7 @@ on how you run it.
 
 If you run `msgvault sync-full` or `msgvault sync-incremental`
 by hand, new Gmail and IMAP messages are **auto-enqueued** into the
-active generation during the sync. Run `msgvault embed` (no
+active generation during the sync. Run `msgvault build-embeddings` (no
 `--full-rebuild`) to drain the queue:
 
 ```bash
@@ -163,13 +163,13 @@ active generation during the sync. Run `msgvault embed` (no
 msgvault sync-incremental you@gmail.com
 
 # Drain the embedding queue into the active generation
-msgvault embed
+msgvault build-embeddings
 ```
 
-`msgvault embed` without `--full-rebuild` is a short, incremental
+`msgvault build-embeddings` without `--full-rebuild` is a short, incremental
 operation: it picks up the configured active generation, drains any
 pending rows, and exits. You can schedule it via cron, run it after
-every sync, or chain it (`sync-incremental && embed`).
+every sync, or chain it (`sync-incremental && build-embeddings`).
 
 ### Daemon workflow (`msgvault serve`)
 
@@ -201,7 +201,7 @@ trigger.
 | Chat imports (iMessage, WhatsApp, Google Voice) | No — chat vector support is follow-up work |
 
 For ingest paths that do not auto-enqueue, running
-`msgvault embed --full-rebuild --yes` rebuilds the index over the
+`msgvault build-embeddings --full-rebuild --yes` rebuilds the index over the
 full archive including the newly-imported messages. A full rebuild
 is atomic: search keeps answering against the previous active
 generation until the new one is ready.
@@ -247,7 +247,7 @@ To switch models or dimensions, update `[vector.embeddings].model`
 and/or `.dimension` in your config, then run:
 
 ```bash
-msgvault embed --full-rebuild --yes
+msgvault build-embeddings --full-rebuild --yes
 ```
 
 This builds a new generation with the new fingerprint and activates
@@ -256,7 +256,7 @@ flight, `mode=vector` and `mode=hybrid` return `index_stale` (the
 previously-active generation no longer matches the configured
 fingerprint, so the server refuses to serve potentially-mismatched
 results). Use `mode=fts` until the new generation activates — it
-does not depend on the vector index. Once `msgvault embed` reports
+does not depend on the vector index. Once `msgvault build-embeddings` reports
 the new generation activated, vector and hybrid modes resume.
 
 ## Troubleshooting
@@ -266,14 +266,14 @@ Common error codes and fixes:
 | Error | Meaning | Recovery |
 |---|---|---|
 | `vector_not_enabled` | `[vector] enabled = false`, or server wasn't started with the binary built with `sqlite_vec`. | Set `enabled = true` and rebuild with `make build`. |
-| `index_stale` | Active generation's model/dimension doesn't match the configured `[vector.embeddings]` fingerprint. | Run `msgvault embed --full-rebuild --yes`. |
-| `index_building` | No active generation yet; one is being built. | Finish running `msgvault embed` or wait for the scheduler. Use `mode=fts` for the interim. |
+| `index_stale` | Active generation's model/dimension doesn't match the configured `[vector.embeddings]` fingerprint. | Run `msgvault build-embeddings --full-rebuild --yes`. |
+| `index_building` | No active generation yet; one is being built. | Finish running `msgvault build-embeddings` or wait for the scheduler. Use `mode=fts` for the interim. |
 | `missing_free_text` | `mode=vector` or `mode=hybrid` used with a filter-only query (no free text to embed). | Add free-text terms to `q`, or switch to `mode=fts`. |
 | `pagination_unsupported` | Request asked for `page>1` with `mode=vector|hybrid`. | Use `page=1` with a larger `page_size` instead. |
 | `invalid_mode` | `mode=` value other than `fts`, `vector`, `hybrid`. | Pick one of those. |
 | `embedding_timeout` | The embedding endpoint did not respond before the request deadline (transient — slow/cold model, network blip). | Retry; if persistent, raise `[vector.embeddings].timeout` or use a faster endpoint. |
 
-`msgvault embed` repeatedly logs `embed batch failed ... HTTP 400`
+`msgvault build-embeddings` repeatedly logs `embed batch failed ... HTTP 400`
 and aborts after 5 consecutive failures: check the embedder's logs.
 If they say `the input length exceeds the context length` (Ollama)
 or an equivalent token-limit error, lower `max_input_chars` to match
