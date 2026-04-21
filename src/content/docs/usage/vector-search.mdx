@@ -5,18 +5,27 @@ description: Semantic and hybrid search over your archive using local or self-ho
 
 import { Aside } from '@astrojs/starlight/components';
 
-msgvault can search your archive semantically using vector embeddings
-in addition to the default keyword (FTS5) search. When enabled, the
-`search` command, the HTTP `/api/v1/search` endpoint, and the MCP
-`search_messages` tool all accept `mode=vector` (pure semantic) and
-`mode=hybrid` (BM25 + vector fused with Reciprocal Rank Fusion). A
-separate MCP tool, `find_similar_messages`, returns nearest-neighbor
-messages for a given seed.
+Semantic search finds messages by meaning, not just keyword overlap:
+a query like "planning offsite agenda" can surface a message titled
+"Q2 team kickoff" if the bodies discuss the same topic, even when
+none of the query words appear in the result. msgvault builds that
+capability on top of the default keyword (FTS5) search by embedding
+each message with an external model you run, then storing the
+vectors locally alongside your archive.
+
+When vector search is enabled, the `search` command, the HTTP
+`/api/v1/search` endpoint, and the MCP `search_messages` tool all
+accept `mode=vector` (pure semantic) and `mode=hybrid` (BM25 +
+vector fused with Reciprocal Rank Fusion). A separate MCP tool,
+`find_similar_messages`, returns nearest-neighbor messages for a
+given seed. Everything runs locally: msgvault calls your embedding
+endpoint and stores the resulting vectors on disk, nothing is sent
+to a third-party service.
 
 <Aside type="note">
 Vector search currently targets the email archive. Chat messages
 (iMessage, WhatsApp, Google Voice) are not yet part of the
-vector-search pipeline — importing chats does not enqueue them for
+vector-search pipeline: importing chats does not enqueue them for
 embedding, and dedicated chat support (ingest-time enqueue, tailored
 preprocessing, chat-first models) is follow-up work.
 </Aside>
@@ -25,7 +34,7 @@ preprocessing, chat-first models) is follow-up work.
 
 1. **A running OpenAI-compatible embedding endpoint.** msgvault does
    not host a model. Point it at a self-hosted server on your
-   network — tested options include [Ollama](https://ollama.com),
+   network. Tested options include [Ollama](https://ollama.com),
    [llama.cpp's `server`](https://github.com/ggerganov/llama.cpp/tree/master/examples/server),
    and [LM Studio](https://lmstudio.ai). The endpoint must accept
    `POST /embeddings` with an OpenAI-style JSON body and return
@@ -41,9 +50,9 @@ preprocessing, chat-first models) is follow-up work.
 
 The sqlite-vec CGo binding needs `sqlite3.h` at compile time, and the
 MinGW 15 toolchain needs two extra flags to link arrow-go/v18's
-helpers. The easiest path is `powershell -File scripts/build.ps1` —
-it wires everything up automatically. To invoke `go build` yourself
-from PowerShell:
+helpers. The easiest path is `powershell -File scripts/build.ps1`,
+which wires everything up automatically. To invoke `go build`
+yourself from PowerShell:
 
 ```powershell
 C:\msys64\usr\bin\pacman.exe -S --noconfirm --needed mingw-w64-x86_64-sqlite3
@@ -114,7 +123,7 @@ Practical guidance:
   context window; 24000 is a reasonable default.
 
 If `msgvault build-embeddings` fails with repeated `HTTP 400` warnings, check
-the embedder's logs — `the input length exceeds the context length`
+the embedder's logs. `the input length exceeds the context length`
 confirms you need to lower `max_input_chars`.
 
 ## Initial Embedding
@@ -131,7 +140,7 @@ with every non-deleted message in your archive, drains the queue in
 batches through your configured embedder, and atomically activates
 the generation once every message has been embedded. While the
 rebuild is in flight, `mode=vector` and `mode=hybrid` return
-`index_building` — use `mode=fts` for the interim.
+`index_building`; use `mode=fts` for the interim.
 
 <Aside type="tip">
 You can interrupt and resume. Each invocation of `msgvault build-embeddings`
@@ -140,10 +149,10 @@ when the queue reaches zero. `Ctrl+C` is safe; run `msgvault build-embeddings`
 again and it picks up from where it left off.
 </Aside>
 
-The initial embed is the largest and longest operation — expect it
+The initial embed is the largest and longest operation. Expect it
 to take proportional to (archive size) / (embedder throughput). A
 10,000-message archive on a local Ollama instance typically runs in
-10–30 minutes.
+10 to 30 minutes.
 
 ## Keeping the Index Up to Date
 
@@ -187,8 +196,8 @@ With `run_after_sync = true`, every successful scheduled sync
 triggers an immediate embed pass against the queue it just
 populated. The standalone cron ensures the queue drains even when
 syncs are quiet (e.g. overnight). An empty `cron = ""` disables the
-standalone schedule — useful if you only want the post-sync
-trigger.
+standalone schedule (useful if you only want the post-sync
+trigger).
 
 ### What auto-enqueues
 
@@ -196,9 +205,9 @@ trigger.
 |---|---|
 | `sync-full` / `sync-incremental` (Gmail, IMAP) | Yes |
 | Scheduled syncs in `msgvault serve` | Yes |
-| `import-emlx` (Apple Mail backup) | No — re-run `--full-rebuild` after large imports |
-| `import-mbox` / `import` (mbox, eml) | No — re-run `--full-rebuild` after large imports |
-| Chat imports (iMessage, WhatsApp, Google Voice) | No — chat vector support is follow-up work |
+| `import-emlx` (Apple Mail backup) | No. Re-run `--full-rebuild` after large imports |
+| `import-mbox` / `import` (mbox, eml) | No. Re-run `--full-rebuild` after large imports |
+| Chat imports (iMessage, WhatsApp, Google Voice) | No. Chat vector support is follow-up work |
 
 For ingest paths that do not auto-enqueue, running
 `msgvault build-embeddings --full-rebuild --yes` rebuilds the index over the
@@ -223,12 +232,12 @@ curl "http://localhost:8080/api/v1/search?q=planning+offsite&mode=hybrid"
 curl "http://localhost:8080/api/v1/search?q=planning+offsite&mode=vector&explain=1"
 ```
 
-Response shape differs from the FTS path — see the
+Response shape differs from the FTS path; see the
 [Web Server](/api-server/#get-apiv1search) reference for details.
 Pagination is not supported for vector/hybrid responses; bump
 `page_size` (capped at `max_page_size_hybrid`) instead.
 
-`mode=vector` and `mode=hybrid` require at least one free-text term —
+`mode=vector` and `mode=hybrid` require at least one free-text term:
 the free text is what gets embedded as the query vector. A query
 that is purely operators (e.g. `from:alice label:IMPORTANT`)
 returns `missing_free_text`; use `mode=fts` for those.
@@ -255,7 +264,7 @@ it atomically when the build completes. While the rebuild is in
 flight, `mode=vector` and `mode=hybrid` return `index_stale` (the
 previously-active generation no longer matches the configured
 fingerprint, so the server refuses to serve potentially-mismatched
-results). Use `mode=fts` until the new generation activates — it
+results). Use `mode=fts` until the new generation activates; it
 does not depend on the vector index. Once `msgvault build-embeddings` reports
 the new generation activated, vector and hybrid modes resume.
 
@@ -271,13 +280,13 @@ Common error codes and fixes:
 | `missing_free_text` | `mode=vector` or `mode=hybrid` used with a filter-only query (no free text to embed). | Add free-text terms to `q`, or switch to `mode=fts`. |
 | `pagination_unsupported` | Request asked for `page>1` with `mode=vector|hybrid`. | Use `page=1` with a larger `page_size` instead. |
 | `invalid_mode` | `mode=` value other than `fts`, `vector`, `hybrid`. | Pick one of those. |
-| `embedding_timeout` | The embedding endpoint did not respond before the request deadline (transient — slow/cold model, network blip). | Retry; if persistent, raise `[vector.embeddings].timeout` or use a faster endpoint. |
+| `embedding_timeout` | The embedding endpoint did not respond before the request deadline (transient: slow/cold model, network blip). | Retry; if persistent, raise `[vector.embeddings].timeout` or use a faster endpoint. |
 
 `msgvault build-embeddings` repeatedly logs `embed batch failed ... HTTP 400`
 and aborts after 5 consecutive failures: check the embedder's logs.
 If they say `the input length exceeds the context length` (Ollama)
 or an equivalent token-limit error, lower `max_input_chars` to match
-the model's context window — see the sizing guidance above.
+the model's context window. See the sizing guidance above.
 
 To confirm the binary was built with vector support:
 
@@ -287,7 +296,7 @@ msgvault search "probe" --mode vector
 
 A clear "rebuild with sqlite_vec" error indicates the tag is
 missing. A different error (`vector_not_enabled`, `index_stale`,
-etc.) indicates the tag is present and the backend is reachable —
+etc.) indicates the tag is present and the backend is reachable;
 you're just waiting on config or backfill.
 
 Check index health via the stats endpoint:
@@ -320,5 +329,5 @@ subject-only embeddings.
 
 ## See Also
 
-- [Web Server](/api-server/) — HTTP API reference (search, stats).
-- [Searching](/usage/searching/) — Full-text search syntax.
+- [Web Server](/api-server/): HTTP API reference (search, stats).
+- [Searching](/usage/searching/): Full-text search syntax.

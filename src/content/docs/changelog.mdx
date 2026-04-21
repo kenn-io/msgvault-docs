@@ -5,6 +5,28 @@ description: Release history for msgvault
 
 All notable changes to msgvault, grouped by release.
 
+## 0.14
+<small>2026-04-21</small>
+
+**New features**
+
+- **Vector search (semantic and hybrid).** msgvault can now embed your email archive using any OpenAI-compatible embedding endpoint (Ollama, llama.cpp `server`, LM Studio, etc.) and search it by meaning, not just keywords. `msgvault search --mode vector` runs pure semantic search; `--mode hybrid` fuses BM25 and vector similarity via Reciprocal Rank Fusion. Exposed through the CLI (`msgvault search`), the HTTP API (`GET /api/v1/search?mode=vector|hybrid`), and the MCP server (`search_messages` mode argument plus a new `find_similar_messages` tool). See [Vector Search](/usage/vector-search/).
+- `msgvault build-embeddings` command to generate and maintain the local vector index. Incremental by default; `--full-rebuild` creates a new generation and atomically activates it once every message has been embedded, so search keeps answering against the previous generation while the new one is built.
+- Background embedding via the daemon scheduler. A new `[vector.embed.schedule]` config block drives the embed worker on cron and/or after every successful scheduled sync, so `msgvault serve` can keep the vector index current without manual intervention.
+- `/api/v1/stats` gains a `vector_search` sub-object reporting the active generation, any in-flight rebuild, and the total pending embedding queue depth.
+
+**Improvements**
+
+- `search` command gains `--mode fts|vector|hybrid` and `--explain` flags. `--explain` includes per-signal scores (RRF, BM25, vector) in table and JSON output for ranking inspection.
+- Configuration gains a full `[vector]` block with sub-tables for the embedding endpoint, message preprocessing, hybrid ranking, and the embed scheduler. See [Configuration: vector](/configuration/#vector).
+- `remove-account` deletes attachment files from disk when they were unique to the removed account. Files shared across multiple accounts are preserved automatically, and an in-progress sync on any account skips file deletion to avoid racing new attachment writes.
+
+**Bug fixes**
+
+- `remove-account` no longer leaves orphaned attachment files on disk after an account's database rows are removed.
+
+---
+
 ## 0.13.1
 <small>2026-04-15</small>
 

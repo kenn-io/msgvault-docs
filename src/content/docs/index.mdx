@@ -5,7 +5,7 @@ template: doc
 hero:
   image:
     html: <img src="/tui-senders.svg" alt="msgvault TUI showing the Senders view" />
-  tagline: Archive a lifetime of email and chat. Analytics and search in milliseconds. Query with AI, entirely offline.
+  tagline: Archive a lifetime of email and chat. Keyword, semantic, and hybrid search in milliseconds. Query with AI, entirely offline.
   actions:
     - text: Quick Start
       link: /setup/
@@ -39,6 +39,10 @@ powershell -ExecutionPolicy ByPass -c "irm https://msgvault.io/install.ps1 | iex
 
 Then [set up OAuth credentials](/guides/oauth-setup/) and [start syncing](/setup/). You can also [build from source](/setup/#build-from-source).
 
+:::note[New in 0.14.0]
+Semantic and hybrid search using local vector embeddings. Point msgvault at a self-hosted embedding endpoint (Ollama, llama.cpp, LM Studio, etc.) and run `msgvault search "query" --mode hybrid` to fuse BM25 and vector ranking. Available through the CLI, HTTP API, and MCP server. See [Vector Search](/usage/vector-search/).
+:::
+
 ## Why msgvault?
 
 Your email and message data is yours. msgvault downloads a complete local copy of your email (from Gmail, IMAP, or local archives) and imports text messages from WhatsApp, iMessage, and Google Voice. Then everything runs offline against that archive. Search, analytics, the TUI, and the MCP server all query local SQLite and Parquet files. **Nothing touches the network outside of sync and deletion commands that you run explicitly.** No background OAuth sessions, no persistent API connections, no risk of an AI assistant or a compromised token silently accessing your live mailbox.
@@ -56,6 +60,9 @@ Years of PDFs, photos, documents, and spreadsheets buried in your inbox become o
   </Card>
   <Card title="Full-Text Search" icon="magnifier">
     SQLite FTS5-powered search with Gmail-like query syntax. Search by sender, date, label, size, attachments, and more.
+  </Card>
+  <Card title="Semantic & Hybrid Search" icon="star">
+    Local vector embeddings for semantic search, and hybrid ranking that fuses BM25 and vector similarity via Reciprocal Rank Fusion. Point msgvault at any OpenAI-compatible embedding endpoint (Ollama, llama.cpp, LM Studio) and query by meaning, not just keywords. Exposed through the CLI, HTTP API, and MCP server.
   </Card>
   <Card title="Multi-Account" icon="add-document">
     Archive multiple email accounts (Gmail and IMAP) in a single database with cross-account search.

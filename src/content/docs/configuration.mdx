@@ -64,6 +64,16 @@ allow_insecure = true
 email = "you@gmail.com"
 schedule = "0 * * * *"
 enabled = true
+
+[vector]
+# Semantic and hybrid search (opt-in; requires a build with sqlite_vec)
+enabled = true
+backend = "sqlite-vec"
+
+[vector.embeddings]
+endpoint = "http://localhost:11434/v1"
+model = "nomic-embed-text"
+dimension = 768
 ```
 
 ### Windows Paths
@@ -175,6 +185,62 @@ Scheduled sync accounts for the web server. Each `[[accounts]]` entry defines a 
 | `email` | (required) | Gmail account email address |
 | `schedule` | — | Cron expression for sync schedule (e.g., `0 * * * *`) |
 | `enabled` | `true` | Whether scheduled sync is active for this account |
+
+### `[vector]`
+
+Top-level toggle and backend selection for semantic/hybrid search. Requires a build with `sqlite_vec` support (default via `make build`). See [Vector Search](/usage/vector-search/) for prerequisites, initial embedding, and the full workflow.
+
+| Key | Default | Description |
+|---|---|---|
+| `enabled` | `false` | Turn on vector and hybrid search. When `false`, `mode=vector` and `mode=hybrid` return `vector_not_enabled`. |
+| `backend` | `sqlite-vec` | Vector backend. Only `sqlite-vec` is supported. |
+| `db_path` | `<data_dir>/vectors.db` | Path to the co-located vectors database. |
+
+#### `[vector.embeddings]`
+
+External OpenAI-compatible embedding endpoint used to convert message text into vectors. msgvault does not host a model, it calls out to one you run (Ollama, llama.cpp `server`, LM Studio, a hosted OpenAI endpoint, etc.).
+
+| Key | Default | Description |
+|---|---|---|
+| `endpoint` | (required) | HTTP(S) URL of an OpenAI-compatible `/embeddings` endpoint. |
+| `model` | (required) | Model name to pass in each request (e.g., `nomic-embed-text`). |
+| `dimension` | (required) | Vector dimension. Must match the model's output dimension. |
+| `api_key_env` | — | Name of an environment variable containing the API key. Omit for anonymous endpoints. |
+| `batch_size` | `32` | Messages per HTTP call. |
+| `timeout` | `30s` | Per-request timeout. |
+| `max_retries` | `3` | Retries per batch on transient failures. |
+| `max_input_chars` | `32768` | Character cap per message before embedding. Set below your model's context window (e.g., `2000` for Ollama's default `nomic-embed-text`). |
+
+The pair `(model, dimension)` forms the index generation fingerprint. Changing either value triggers a stale-index error on the next query until you run `msgvault build-embeddings --full-rebuild`.
+
+#### `[vector.preprocess]`
+
+Controls text normalization before embedding.
+
+| Key | Default | Description |
+|---|---|---|
+| `strip_quotes` | `true` | Drop quoted reply blocks (`> ...` lines, reply preambles) before embedding. |
+| `strip_signatures` | `true` | Drop trailing signature blocks (content after `-- `). |
+
+#### `[vector.search]`
+
+Hybrid ranking parameters applied at query time.
+
+| Key | Default | Description |
+|---|---|---|
+| `rrf_k` | `60` | Reciprocal Rank Fusion constant. Higher values flatten score differences between signals. |
+| `k_per_signal` | `100` | Candidate pool size drawn from each signal (BM25 or vector) before fusion. |
+| `subject_boost` | `2.0` | Multiplier applied when a query term matches a message's subject line. |
+| `max_page_size_hybrid` | `50` | Hard cap on `page_size` for vector/hybrid responses. Set to `0` to disable clamping. |
+
+#### `[vector.embed.schedule]`
+
+Optional background scheduling for the embed worker inside `msgvault serve`. Empty config disables scheduled embedding; you can still run `msgvault build-embeddings` by hand.
+
+| Key | Default | Description |
+|---|---|---|
+| `cron` | — | 5-field cron expression. Empty string disables the standalone cron. |
+| `run_after_sync` | `false` | When `true`, an embed pass runs after every successful scheduled sync. |
 
 ## Overriding the Home Directory
 
