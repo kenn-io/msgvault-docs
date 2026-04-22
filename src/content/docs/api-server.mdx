@@ -9,7 +9,7 @@ import { Aside } from '@astrojs/starlight/components';
 
 `msgvault serve` starts an HTTP server that exposes your local email archive over a REST API. It optionally runs a background sync scheduler to keep accounts up to date on a cron-based schedule.
 
-All data stays local. The API queries the same SQLite database and attachment store as the CLI and TUI. The server is designed for local integrations, dashboards, and automation scripts.
+The API queries the same SQLite database and attachment store as the CLI and TUI. Keyword search and ordinary archive reads stay local. If vector search is enabled, semantic and hybrid search also call the embedding endpoint configured in `[vector.embeddings]`. The server is designed for local integrations, dashboards, and automation scripts.
 
 ## Quick Start
 
@@ -274,9 +274,10 @@ Vector and hybrid responses expose `returned` instead of `total`
 (ANN search does not have a meaningful total count), add a
 `generation` sub-object naming the index generation that answered
 the query, and include `took_ms`. The top-level `results` array
-replaces `messages`. `pool_saturated` is true when the number of
-results equals the per-signal candidate pool, hinting that some
-relevant hits may have been cut off.
+replaces `messages`. `pool_saturated` is true when a vector or BM25
+candidate pool hit its configured cap (or pure vector search returned
+as many hits as requested), hinting that increasing the limit or
+narrowing the query may expose more relevant results.
 
 When `explain=1`, each element of `results` carries an extra `score`
 object exposing the fused-score components:

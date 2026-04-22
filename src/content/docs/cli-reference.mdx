@@ -452,7 +452,7 @@ msgvault build-embeddings [flags]
 
 | Flag | Description |
 |---|---|
-| `--full-rebuild` | Create a new index generation and rebuild from scratch. The new generation is activated atomically once every message has been embedded; search continues to answer from the previously active generation in the meantime. |
+| `--full-rebuild` | Create a new index generation and rebuild from scratch. The new generation is activated atomically once pending work drains. Same-model rebuilds keep serving the previous active generation in the meantime; model or dimension changes return `index_stale` for vector/hybrid search until the new generation activates. |
 | `--yes` | Skip the confirmation prompt that `--full-rebuild` otherwise requires. |
 
 Without `--full-rebuild`, the command is incremental: it resumes any in-flight rebuild that matches the configured model, otherwise drains the pending queue for the active generation, then exits. Safe to schedule via cron (or let `msgvault serve` do it via `[vector.embed.schedule]`). See [Vector Search](/usage/vector-search/) for prerequisites, model rotation, and troubleshooting.

@@ -1,6 +1,6 @@
 ---
 title: Vector Search
-description: Semantic and hybrid search over your archive using local or self-hosted embedding models.
+description: Semantic and hybrid search over your archive using a configured embedding endpoint.
 ---
 
 import { Aside } from '@astrojs/starlight/components';
@@ -9,36 +9,42 @@ Semantic search finds messages by meaning, not just keyword overlap:
 a query like "planning offsite agenda" can surface a message titled
 "Q2 team kickoff" if the bodies discuss the same topic, even when
 none of the query words appear in the result. msgvault builds that
-capability on top of the default keyword (FTS5) search by embedding
-each message with an external model you run, then storing the
-vectors locally alongside your archive.
+capability on top of the default keyword (FTS5) search by sending
+message text to an embedding endpoint you configure, then storing the
+vectors locally in `vectors.db` alongside your archive.
 
 When vector search is enabled, the `search` command, the HTTP
 `/api/v1/search` endpoint, and the MCP `search_messages` tool all
 accept `mode=vector` (pure semantic) and `mode=hybrid` (BM25 +
 vector fused with Reciprocal Rank Fusion). A separate MCP tool,
 `find_similar_messages`, returns nearest-neighbor messages for a
-given seed. Everything runs locally: msgvault calls your embedding
-endpoint and stores the resulting vectors on disk, nothing is sent
-to a third-party service.
+given seed. The vectors and archive stay local, but embedding work is
+performed by the endpoint in your config. If that endpoint is hosted
+by a third party, message text and semantic query text are sent there;
+use a local or self-hosted endpoint when you need the workflow to stay
+on your own machine or network.
 
 <Aside type="note">
-Vector search currently targets the email archive. Chat messages
-(iMessage, WhatsApp, Google Voice) are not yet part of the
-vector-search pipeline: importing chats does not enqueue them for
-embedding, and dedicated chat support (ingest-time enqueue, tailored
-preprocessing, chat-first models) is follow-up work.
+Vector indexing operates over msgvault's shared `messages` table. A
+full rebuild embeds every non-deleted message row, including imported
+chat messages. Chat import commands do not auto-enqueue new rows into
+an existing vector generation, so run
+`msgvault build-embeddings --full-rebuild --yes` after importing
+iMessage, WhatsApp, or Google Voice data if you want those messages in
+the vector index. Chat-specific preprocessing and ranking are not
+separate yet.
 </Aside>
 
 ## Prerequisites
 
 1. **A running OpenAI-compatible embedding endpoint.** msgvault does
-   not host a model. Point it at a self-hosted server on your
-   network. Tested options include [Ollama](https://ollama.com),
+   not host a model. Point it at a local, self-hosted, or hosted
+   endpoint that you trust. Common local options include [Ollama](https://ollama.com),
    [llama.cpp's `server`](https://github.com/ggerganov/llama.cpp/tree/master/examples/server),
    and [LM Studio](https://lmstudio.ai). The endpoint must accept
    `POST /embeddings` with an OpenAI-style JSON body and return
-   `{"data": [{"embedding": [...]}]}`.
+   indexed data rows such as
+   `{"data": [{"index": 0, "embedding": [...]}]}`.
 
 2. **A build with `sqlite_vec` support.** The standard `make build`
    target already passes `-tags "fts5 sqlite_vec"`. If you see errors
@@ -100,27 +106,24 @@ run_after_sync = true                    # run a pass after every successful sch
 
 The `[vector]` section only takes effect when `enabled = true` **and**
 the binary was built with `sqlite_vec`. If either is missing, msgvault
-behaves as before and the search features described here return
-`vector_not_enabled`.
+behaves as before. Disabled vector search returns `vector_not_enabled`
+from server surfaces; a binary built without `sqlite_vec` reports a
+rebuild-with-sqlite-vec error when vector features are requested.
 
 ### Matching `max_input_chars` to your embedder's context window
 
 `max_input_chars` is an upper bound in characters; the embedder
 converts this to tokens on its own. Set it below the embedder's
-maximum context or full-length messages will fail with HTTP 400
-during `embed`. Ollama in particular ships several embedding models
-with GGUF-declared context of 2048 tokens even when the upstream
-model supports more, and adding `PARAMETER num_ctx 8192` to a
-Modelfile does not raise the hard cap.
+maximum context or full-length messages can fail with HTTP 400
+during `msgvault build-embeddings`.
 
 Practical guidance:
 
-- **Ollama `nomic-embed-text` (2048 tokens):** use
-  `max_input_chars = 2000`. Expect ~20% of messages to be truncated.
-- **OpenAI `text-embedding-3-small` (8192 tokens):**
-  `max_input_chars = 24000` is a safe cap.
-- **Self-hosted llama.cpp with an 8k-context GGUF:** match the
-  context window; 24000 is a reasonable default.
+- **2k-token embedding models:** start around `max_input_chars = 2000`
+  and raise only after confirming the endpoint accepts longer inputs.
+- **8k-token embedding models:** start around `max_input_chars = 24000`.
+- **Self-hosted models:** match the actual context window exposed by
+  your server, not just the upstream model card.
 
 If `msgvault build-embeddings` fails with repeated `HTTP 400` warnings, check
 the embedder's logs. `the input length exceeds the context length`
@@ -128,8 +131,8 @@ confirms you need to lower `max_input_chars`.
 
 ## Initial Embedding
 
-Once vector search is enabled and your email is synced, embed the
-archive:
+Once vector search is enabled and your archive has synced or imported
+messages, embed it:
 
 ```bash
 msgvault build-embeddings --full-rebuild --yes
@@ -138,9 +141,10 @@ msgvault build-embeddings --full-rebuild --yes
 This creates a new **building generation**, seeds the pending queue
 with every non-deleted message in your archive, drains the queue in
 batches through your configured embedder, and atomically activates
-the generation once every message has been embedded. While the
-rebuild is in flight, `mode=vector` and `mode=hybrid` return
-`index_building`; use `mode=fts` for the interim.
+the generation once every pending row has been embedded. During the
+first build, when no active generation exists yet, HTTP and MCP
+vector/hybrid search return `index_building`; use `mode=fts` for the
+interim.
 
 <Aside type="tip">
 You can interrupt and resume. Each invocation of `msgvault build-embeddings`
@@ -149,10 +153,8 @@ when the queue reaches zero. `Ctrl+C` is safe; run `msgvault build-embeddings`
 again and it picks up from where it left off.
 </Aside>
 
-The initial embed is the largest and longest operation. Expect it
-to take proportional to (archive size) / (embedder throughput). A
-10,000-message archive on a local Ollama instance typically runs in
-10 to 30 minutes.
+The initial embed is the largest and longest operation. Runtime is
+roughly proportional to archive size divided by embedding throughput.
 
 ## Keeping the Index Up to Date
 
@@ -162,14 +164,17 @@ on how you run it.
 
 ### CLI workflow (manual syncs)
 
-If you run `msgvault sync-full` or `msgvault sync-incremental`
-by hand, new Gmail and IMAP messages are **auto-enqueued** into the
-active generation during the sync. Run `msgvault build-embeddings` (no
-`--full-rebuild`) to drain the queue:
+If you run `msgvault sync-full` or `msgvault sync` (alias:
+`sync-incremental`) by hand, new Gmail and IMAP messages are
+**auto-enqueued** into every
+non-retired generation during the sync. In steady state that means the
+active generation; during a rebuild it means both the old active
+generation and the new building generation. Run
+`msgvault build-embeddings` (no `--full-rebuild`) to drain the queue:
 
 ```bash
 # Sync new messages (auto-enqueues them for embedding)
-msgvault sync-incremental you@gmail.com
+msgvault sync you@gmail.com
 
 # Drain the embedding queue into the active generation
 msgvault build-embeddings
@@ -178,7 +183,7 @@ msgvault build-embeddings
 `msgvault build-embeddings` without `--full-rebuild` is a short, incremental
 operation: it picks up the configured active generation, drains any
 pending rows, and exits. You can schedule it via cron, run it after
-every sync, or chain it (`sync-incremental && build-embeddings`).
+every sync, or chain it (`sync && build-embeddings`).
 
 ### Daemon workflow (`msgvault serve`)
 
@@ -203,17 +208,20 @@ trigger).
 
 | Ingest path | Auto-enqueues? |
 |---|---|
-| `sync-full` / `sync-incremental` (Gmail, IMAP) | Yes |
+| `sync-full` / `sync` (Gmail, IMAP) | Yes |
 | Scheduled syncs in `msgvault serve` | Yes |
 | `import-emlx` (Apple Mail backup) | No. Re-run `--full-rebuild` after large imports |
 | `import-mbox` / `import` (mbox, eml) | No. Re-run `--full-rebuild` after large imports |
-| Chat imports (iMessage, WhatsApp, Google Voice) | No. Chat vector support is follow-up work |
+| Chat imports (iMessage, WhatsApp, Google Voice) | No. Run a full rebuild after importing if you want chats included |
 
 For ingest paths that do not auto-enqueue, running
 `msgvault build-embeddings --full-rebuild --yes` rebuilds the index over the
-full archive including the newly-imported messages. A full rebuild
-is atomic: search keeps answering against the previous active
-generation until the new one is ready.
+full archive including the newly-imported messages. A same-model full
+rebuild is atomic from the searcher's perspective: vector and hybrid
+queries keep answering from the previous active generation until the
+new one is ready. If the rebuild changes the configured model or
+dimension, vector and hybrid queries return `index_stale` until the
+new generation activates.
 
 ## Search
 
@@ -224,6 +232,11 @@ msgvault search "planning offsite agenda" --mode hybrid
 msgvault search "planning offsite agenda" --mode vector --explain
 msgvault search "..." --json --mode hybrid    # JSON output with scores
 ```
+
+CLI vector and hybrid modes run against the local archive. If
+`[remote].url` is configured, `msgvault search --mode vector|hybrid`
+is rejected; call the remote server's HTTP `/api/v1/search` endpoint
+directly for remote vector search.
 
 **HTTP:**
 
@@ -239,8 +252,9 @@ Pagination is not supported for vector/hybrid responses; bump
 
 `mode=vector` and `mode=hybrid` require at least one free-text term:
 the free text is what gets embedded as the query vector. A query
-that is purely operators (e.g. `from:alice label:IMPORTANT`)
-returns `missing_free_text`; use `mode=fts` for those.
+that is purely operators (e.g. `from:alice label:IMPORTANT`) is
+rejected; HTTP and MCP return `missing_free_text`. Use `mode=fts` for
+those.
 
 **MCP tools:**
 
@@ -263,18 +277,19 @@ This builds a new generation with the new fingerprint and activates
 it atomically when the build completes. While the rebuild is in
 flight, `mode=vector` and `mode=hybrid` return `index_stale` (the
 previously-active generation no longer matches the configured
-fingerprint, so the server refuses to serve potentially-mismatched
+fingerprint, so search refuses to serve potentially-mismatched
 results). Use `mode=fts` until the new generation activates; it
 does not depend on the vector index. Once `msgvault build-embeddings` reports
 the new generation activated, vector and hybrid modes resume.
 
 ## Troubleshooting
 
-Common error codes and fixes:
+Common HTTP/MCP error codes and fixes. The CLI reports equivalent
+conditions as command errors rather than structured codes.
 
 | Error | Meaning | Recovery |
 |---|---|---|
-| `vector_not_enabled` | `[vector] enabled = false`, or server wasn't started with the binary built with `sqlite_vec`. | Set `enabled = true` and rebuild with `make build`. |
+| `vector_not_enabled` | The server or MCP process did not wire a vector backend, usually because `[vector] enabled = false`. | Set `enabled = true`, configure `[vector.embeddings]`, and start with a `sqlite_vec` build. |
 | `index_stale` | Active generation's model/dimension doesn't match the configured `[vector.embeddings]` fingerprint. | Run `msgvault build-embeddings --full-rebuild --yes`. |
 | `index_building` | No active generation yet; one is being built. | Finish running `msgvault build-embeddings` or wait for the scheduler. Use `mode=fts` for the interim. |
 | `missing_free_text` | `mode=vector` or `mode=hybrid` used with a filter-only query (no free text to embed). | Add free-text terms to `q`, or switch to `mode=fts`. |
@@ -294,10 +309,10 @@ To confirm the binary was built with vector support:
 msgvault search "probe" --mode vector
 ```
 
-A clear "rebuild with sqlite_vec" error indicates the tag is
-missing. A different error (`vector_not_enabled`, `index_stale`,
-etc.) indicates the tag is present and the backend is reachable;
-you're just waiting on config or backfill.
+A clear "rebuild with sqlite_vec" error indicates the tag is missing.
+A different error (`vector_not_enabled`, `index_stale`, etc.) means
+the command moved past the build-tag check and is now waiting on
+config or backfill.
 
 Check index health via the stats endpoint:
 
@@ -324,8 +339,9 @@ assembled from `subject` and `body_text` after preprocessing
 Messages deleted at the source (`deleted_from_source_at IS NOT NULL`)
 are skipped entirely. Messages without a `body_text` fall back to
 HTML-to-text conversion of `body_html` so HTML-only messages still
-contribute full-body embeddings. Messages with neither fall back to
-subject-only embeddings.
+contribute full-body embeddings. Messages with neither body field use
+the subject only; if the subject is also empty, the embedder receives
+an empty string for that row.
 
 ## See Also
 
