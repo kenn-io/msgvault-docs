@@ -249,7 +249,7 @@ See [Text Messages](/usage/text-messages/) for usage examples.
 
 ## search
 
-Search the archive with Gmail-like query syntax.
+Search the archive with Gmail-like query syntax. Supports keyword (FTS5), semantic, and hybrid modes.
 
 ```bash
 msgvault search <query> [flags]
@@ -258,11 +258,13 @@ msgvault search <query> [flags]
 | Flag | Description |
 |---|---|
 | `-n`, `--limit N` | Maximum number of results (default: 50) |
-| `--offset N` | Skip first N results |
+| `--offset N` | Skip first N results (only valid for `--mode fts`) |
 | `--json` | Output results as JSON |
 | `--account` | Limit results to a specific account |
+| `--mode` | Search mode: `fts` (default), `vector`, or `hybrid`. `vector` and `hybrid` require vector search to be configured. |
+| `--explain` | Include per-signal scores (RRF, BM25, vector) in the output. Only applies to `--mode vector` and `--mode hybrid`. |
 
-See [Searching](/usage/searching/) for the full operator reference.
+`--mode vector` and `--mode hybrid` require at least one free-text term in the query (filter-only queries use `--mode fts`). They do not support pagination (`--offset` is rejected), so bump `--limit` to retrieve a larger candidate pool instead. See [Searching](/usage/searching/) for the operator reference and [Vector Search](/usage/vector-search/) for semantic setup.
 
 ---
 
@@ -440,6 +442,23 @@ msgvault build-cache [flags]
 
 ---
 
+## build-embeddings
+
+Build or update the vector embedding index used by `--mode vector` and `--mode hybrid` search. Requires a build with `sqlite_vec` support (default via `make build`) and a configured `[vector.embeddings]` endpoint.
+
+```bash
+msgvault build-embeddings [flags]
+```
+
+| Flag | Description |
+|---|---|
+| `--full-rebuild` | Create a new index generation and rebuild from scratch. The new generation is activated atomically once pending work drains. Same-model rebuilds keep serving the previous active generation in the meantime; model or dimension changes return `index_stale` for vector/hybrid search until the new generation activates. |
+| `--yes` | Skip the confirmation prompt that `--full-rebuild` otherwise requires. |
+
+Without `--full-rebuild`, the command is incremental: it resumes any in-flight rebuild that matches the configured model, otherwise drains the pending queue for the active generation, then exits. Safe to schedule via cron (or let `msgvault serve` do it via `[vector.embed.schedule]`). See [Vector Search](/usage/vector-search/) for prerequisites, model rotation, and troubleshooting.
+
+---
+
 ## cache-stats
 
 Show statistics about the analytics cache.
@@ -492,7 +511,7 @@ Start the web server with optional background sync scheduling.
 msgvault serve
 ```
 
-The `serve` command has no CLI flags. All configuration (port, bind address, API key, CORS, account schedules) is read from your `config.toml`. See [Web Server](/api-server/) for endpoint documentation and [Configuration](/configuration/#server) for config options.
+The `serve` command has no CLI flags. All configuration (port, bind address, API key, CORS, account schedules, vector embedding schedule) is read from your `config.toml`. See [Web Server](/api-server/) for endpoint documentation and [Configuration](/configuration/#server) for config options. When vector search is enabled, the daemon can also run the embed worker on a cron and/or after every successful sync, see [Configuration: vector.embed.schedule](/configuration/#vectorembedschedule).
 
 ---
 
@@ -553,6 +572,23 @@ msgvault update-account <email> [flags]
 | Flag | Description |
 |---|---|
 | `--display-name` | Set a display name for the account |
+
+---
+
+## remove-account
+
+Remove an account and all its local data. Deletes messages, labels, sync state, OAuth or IMAP credentials, and attachment files unique to this account. This is irreversible and operates only on the local archive; it does not touch the remote provider.
+
+```bash
+msgvault remove-account <email> [flags]
+```
+
+| Flag | Description |
+|---|---|
+| `-y`, `--yes` | Skip the confirmation prompt (and allow removal when an active sync is in progress) |
+| `--type` | Source type to remove when the same identifier exists across source types (`gmail`, `imap`, `mbox`, etc.) |
+
+Attachment files are only deleted when no other account references the same content hash. The shared Parquet analytics cache is also cleared; run `msgvault build-cache` afterward to rebuild it.
 
 ---
 

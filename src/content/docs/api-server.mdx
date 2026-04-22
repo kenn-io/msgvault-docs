@@ -9,7 +9,7 @@ import { Aside } from '@astrojs/starlight/components';
 
 `msgvault serve` starts an HTTP server that exposes your local email archive over a REST API. It optionally runs a background sync scheduler to keep accounts up to date on a cron-based schedule.
 
-All data stays local. The API queries the same SQLite database and attachment store as the CLI and TUI. The server is designed for local integrations, dashboards, and automation scripts.
+The API queries the same SQLite database and attachment store as the CLI and TUI. Keyword search and ordinary archive reads stay local. If vector search is enabled, semantic and hybrid search also call the embedding endpoint configured in `[vector.embeddings]`. The server is designed for local integrations, dashboards, and automation scripts.
 
 ## Quick Start
 
@@ -65,9 +65,11 @@ Health check endpoint. Does not require authentication.
 
 ### GET `/api/v1/stats`
 
-Archive statistics.
+Archive statistics. When vector search is configured on the server,
+the response also includes a `vector_search` sub-object describing
+the state of the index.
 
-**Response:**
+**Response (vector search disabled):**
 
 ```json
 {
@@ -79,6 +81,45 @@ Archive statistics.
   "database_size_bytes": 8589934592
 }
 ```
+
+**Response (vector search enabled):**
+
+```json
+{
+  "total_messages": 142857,
+  "total_threads": 48293,
+  "total_accounts": 2,
+  "total_labels": 47,
+  "total_attachments": 31204,
+  "database_size_bytes": 8589934592,
+  "vector_search": {
+    "enabled": true,
+    "active_generation": {
+      "id": 3,
+      "model": "nomic-embed-text-v1.5",
+      "dimension": 768,
+      "fingerprint": "nomic-embed-text-v1.5:768",
+      "state": "active",
+      "activated_at": "2026-04-18T15:12:33Z",
+      "message_count": 142820
+    },
+    "building_generation": {
+      "id": 4,
+      "model": "nomic-embed-text-v2",
+      "dimension": 768,
+      "started_at": "2026-04-19T09:02:10Z",
+      "progress": { "done": 8200, "total": 142857 }
+    },
+    "pending_embeddings_total": 134657
+  }
+}
+```
+
+`active_generation` is always present in the object (null until the
+first build completes). `building_generation` is omitted when no
+rebuild is in flight. `pending_embeddings_total` is the sum of rows
+still pending across the active and building generations. See
+[Vector Search](/usage/vector-search/) for the end-to-end workflow.
 
 ---
 
@@ -153,15 +194,26 @@ The `cc` and `bcc` fields are included when the message has recipients of that t
 
 ### GET `/api/v1/search`
 
-Full-text search using the same query syntax as `msgvault search`.
+Search messages. The default mode is full-text search (FTS5 with
+LIKE fallback). When the server is configured for vector search,
+`mode=vector` runs semantic-only search and `mode=hybrid` fuses BM25
+and vector ranking via Reciprocal Rank Fusion.
+
+`mode=vector` and `mode=hybrid` both require at least one free-text
+term in `q` — the free text is what gets embedded as the query
+vector. Operator-only queries such as `q=from:alice` have nothing to
+embed and return `400 missing_free_text`; route filter-only requests
+to `mode=fts` instead.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `q` | string | (required) | Search query |
-| `page` | int | `1` | Page number |
-| `page_size` | int | `20` | Results per page |
+| `mode` | enum | `fts` | `fts`, `vector`, or `hybrid` |
+| `page` | int | `1` | Page number (FTS only — vector/hybrid reject `page>1`) |
+| `page_size` | int | `20` | Results per page (max 100 for FTS, max `[vector].search.max_page_size_hybrid` for vector/hybrid) |
+| `explain` | 0/1 | `0` | When `1` and `mode=vector|hybrid`, include per-signal scores |
 
-**Response:**
+**Response (mode=fts, default):**
 
 ```json
 {
@@ -186,7 +238,72 @@ Full-text search using the same query syntax as `msgvault search`.
 }
 ```
 
-See [Searching](/usage/searching/) for the full query syntax reference.
+**Response (mode=vector or mode=hybrid):**
+
+```json
+{
+  "query": "when is the planning offsite",
+  "mode": "hybrid",
+  "returned": 12,
+  "pool_saturated": false,
+  "generation": {
+    "id": 3,
+    "model": "nomic-embed-text-v1.5",
+    "dimension": 768,
+    "fingerprint": "nomic-embed-text-v1.5:768",
+    "state": "active"
+  },
+  "took_ms": 84,
+  "results": [
+    {
+      "id": 12345,
+      "subject": "Q2 planning offsite agenda",
+      "from": "alice@example.com",
+      "to": ["team@example.com"],
+      "sent_at": "2024-01-15T10:30:00Z",
+      "snippet": "Proposed agenda for the offsite on...",
+      "labels": ["INBOX"],
+      "has_attachments": false,
+      "size_bytes": 2048
+    }
+  ]
+}
+```
+
+Vector and hybrid responses expose `returned` instead of `total`
+(ANN search does not have a meaningful total count), add a
+`generation` sub-object naming the index generation that answered
+the query, and include `took_ms`. The top-level `results` array
+replaces `messages`. `pool_saturated` is true when a vector or BM25
+candidate pool hit its configured cap (or pure vector search returned
+as many hits as requested), hinting that increasing the limit or
+narrowing the query may expose more relevant results.
+
+When `explain=1`, each element of `results` carries an extra `score`
+object exposing the fused-score components:
+
+```json
+{
+  "id": 12345,
+  "subject": "...",
+  "score": {
+    "rrf": 0.032,
+    "bm25": 7.4,
+    "vector": 0.82,
+    "subject_boosted": true
+  }
+}
+```
+
+`bm25` and `vector` are omitted when the message did not appear in
+that signal (BM25 missed it or the ANN pool did not include it).
+`rrf` is omitted in `mode=vector` (only one signal — there is
+nothing to fuse). `subject_boosted` is true when the subject-line
+boost was applied.
+
+See [Searching](/usage/searching/) for the full query syntax
+reference and [Vector Search](/usage/vector-search/) for vector /
+hybrid setup.
 
 ---
 

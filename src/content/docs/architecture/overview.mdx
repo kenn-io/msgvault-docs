@@ -3,7 +3,7 @@ title: Architecture Overview
 description: Package structure and data flow.
 ---
 
-msgvault syncs your Gmail or IMAP accounts to a local SQLite database, the only step that touches the network. You can also import local MBOX archives, Apple Mail exports, and text messages from WhatsApp, iMessage, and Google Voice. Everything else (search, analytics, the TUI, and the MCP server) runs entirely offline against SQLite, Parquet, and local attachment files.
+msgvault syncs your Gmail or IMAP accounts to a local SQLite database and can import local MBOX archives, Apple Mail exports, and text messages from WhatsApp, iMessage, and Google Voice. Keyword search, analytics, the TUI, and the MCP server run against SQLite, Parquet, and local attachment files. Optional vector search calls the embedding endpoint configured in `[vector.embeddings]` to build/query semantic vectors, then stores those vectors locally in `vectors.db`.
 
 <img src="/how-it-works.svg" alt="msgvault architecture: Gmail API syncs to SQLite, then offline Parquet analytics, FTS5 search, TUI, and MCP Server" style="width: 100%; max-width: 960px; margin: 1.5rem auto; display: block;" />
 
@@ -26,6 +26,7 @@ msgvault/
 │   ├── emlx/                # Apple Mail .emlx parser
 │   ├── applemail/           # Apple Mail account discovery
 │   ├── remote/              # Remote API engine for TUI
+│   ├── vector/              # Local vector index, embedding worker, hybrid search
 │   ├── whatsapp/            # WhatsApp backup import
 │   ├── imessage/            # iMessage import
 │   ├── gvoice/              # Google Voice Takeout import
@@ -49,6 +50,7 @@ msgvault/
 | `internal/emlx` | Apple Mail .emlx parser and mailbox discovery |
 | `internal/applemail` | Apple Mail account discovery via `Accounts4.sqlite` |
 | `internal/remote` | HTTP engine implementing `query.Engine` for remote TUI |
+| `internal/vector` | Vector index backend, embedding client/worker, and semantic/hybrid search |
 | `internal/gmail` | Gmail API client with token bucket rate limiting |
 | `internal/oauth` | OAuth2 browser and device authorization flows |
 | `internal/query` | DuckDB engine over Parquet files, SQLite fallback |
@@ -62,7 +64,7 @@ msgvault/
 
 ## Design Decisions
 
-- **Offline by design**: The Gmail API and IMAP servers are only contacted during explicit `sync-full`, `sync`, and deletion commands. Every other operation (search, analytics, TUI, MCP) runs entirely against local data with no network access required. This means no background OAuth sessions, no persistent API connections, and no possibility of an external tool or AI assistant reaching your live mailbox.
+- **Local-first by design**: The Gmail API and IMAP servers are only contacted during explicit `sync-full`, `sync`, and deletion commands. Keyword search, analytics, TUI views, and ordinary MCP reads run against local data with no mailbox network access. Optional vector search additionally calls only the embedding endpoint you configure, so a local/self-hosted endpoint keeps semantic search on your own machine or network.
 - **SQLite as system of record**: All message data lives in SQLite. Parquet is a derived cache.
 - **DuckDB + Parquet for analytics**: The TUI runs an embedded DuckDB engine over Parquet metadata exports, delivering aggregate queries hundreds of times faster than SQLite JOINs. The entire analytics cache for hundreds of thousands of messages fits in a few megabytes, making drill-down and re-aggregation feel instant.
 - **Content-addressed attachments**: Deduplicated by SHA-256 hash, stored on disk.
