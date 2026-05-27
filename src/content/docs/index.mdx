@@ -1,6 +1,6 @@
 ---
 title: msgvault
-description: Offline email and message archive with full-text search, interactive TUI, and multi-account support. Import from Gmail, IMAP, MBOX, Apple Mail, WhatsApp, iMessage, and Google Voice.
+description: Offline email and message archive with full-text search, interactive TUI, and multi-account support. Import from Gmail, IMAP, PST, MBOX, Apple Mail, WhatsApp, iMessage, Google Voice, Facebook Messenger, and SMS Backup & Restore.
 template: doc
 hero:
   image:
@@ -22,7 +22,7 @@ hero:
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-Supports Gmail sync, IMAP, MBOX import, Apple Mail import, and text message import (WhatsApp, iMessage, Google Voice).
+Supports Gmail sync, IMAP, Microsoft 365, PST import, MBOX import, Apple Mail import, and chat/text import (WhatsApp, iMessage, Google Voice, Facebook Messenger, SMS Backup & Restore).
 
 Read the [Introduction](/introduction/) to learn more about why this project was created.
 
@@ -39,13 +39,13 @@ powershell -ExecutionPolicy ByPass -c "irm https://msgvault.io/install.ps1 | iex
 
 Then [set up OAuth credentials](/guides/oauth-setup/) and [start syncing](/setup/). You can also [build from source](/setup/#build-from-source).
 
-:::note[New in 0.14.0]
-Semantic and hybrid search with vectors stored locally in `vectors.db`. Point msgvault at a local or self-hosted OpenAI-compatible embedding endpoint (Ollama, llama.cpp, LM Studio, etc.) and run `msgvault search "query" --mode hybrid` to fuse BM25 and vector ranking. Available through local CLI search, the HTTP API, and the MCP server. See [Vector Search](/usage/vector-search/).
+:::note[New in 0.15.0]
+PST archive import, Facebook Messenger DYI import, SyncTech SMS Backup & Restore import, account collections, per-account identities, reversible deduplication workflows, Google service account delegation, MCP StreamableHTTP, and API access to HTML email bodies and inline images. See the [Changelog](/changelog/) for the full release notes.
 :::
 
 ## Why msgvault?
 
-Your email and message data is yours. msgvault downloads a complete local copy of your email (from Gmail, IMAP, or local archives) and imports text messages from WhatsApp, iMessage, and Google Voice. Keyword search, analytics, the TUI, and the MCP server query local SQLite and Parquet files. **Nothing contacts your live mailbox outside sync and deletion commands that you run explicitly.** Optional vector search calls only the embedding endpoint you configure; use a local or self-hosted endpoint if message text must never leave your machine or network.
+Your email and message data is yours. msgvault downloads a complete local copy of your email (from Gmail, IMAP, or local archives) and imports chats and texts from WhatsApp, iMessage, Google Voice, Facebook Messenger, and SMS Backup & Restore. Keyword search, analytics, the TUI, and the MCP server query local SQLite and Parquet files. **Nothing contacts your live mailbox outside sync and deletion commands that you run explicitly.** Optional vector search calls only the embedding endpoint you configure; use a local or self-hosted endpoint if message text must never leave your machine or network.
 
 Years of PDFs, photos, documents, and spreadsheets buried in your inbox become ordinary files on your filesystem, deduplicated and instantly searchable. Your data is no longer locked behind a web interface or an API. It's just files on disk that you own and control.
 
@@ -65,7 +65,7 @@ Years of PDFs, photos, documents, and spreadsheets buried in your inbox become o
     Opt-in semantic search with vectors stored locally, plus hybrid ranking that fuses BM25 and vector similarity via Reciprocal Rank Fusion. Point msgvault at a local or self-hosted OpenAI-compatible embedding endpoint and query by meaning, not just keywords. Exposed through local CLI search, the HTTP API, and MCP server.
   </Card>
   <Card title="Multi-Account" icon="add-document">
-    Archive multiple email accounts (Gmail and IMAP) in a single database with cross-account search.
+    Archive multiple sources in a single database, group accounts into collections, manage per-account identities, and deduplicate safely.
   </Card>
   <Card title="Incremental Sync" icon="rocket">
     Uses Gmail History API for efficient updates after initial full sync. Resumable checkpoints for interrupted syncs.
@@ -77,7 +77,7 @@ Years of PDFs, photos, documents, and spreadsheets buried in your inbox become o
     REST API for programmatic access to your archive. Optional cron-based background sync scheduling. Build dashboards, automations, and integrations.
   </Card>
   <Card title="Local Import" icon="open-book">
-    Import MBOX archives, Apple Mail `.emlx` exports, and text messages from WhatsApp, iMessage, and Google Voice. Messages are deduplicated, fully indexed, and searchable alongside your email data.
+    Import PST archives, MBOX archives, Apple Mail `.emlx` exports, and chats/texts from WhatsApp, iMessage, Google Voice, Facebook Messenger, and SMS Backup & Restore. Messages are indexed and searchable alongside your email data.
   </Card>
   <Card title="Safe Deletion" icon="warning">
     Stage messages for deletion in the TUI or via AI assistant, review manifests, then permanently delete from Gmail or IMAP provider.

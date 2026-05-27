@@ -137,6 +137,41 @@ To move an account back to the default app:
 msgvault add-account you@acme.com --oauth-app ""      # clears the binding
 ```
 
+#### Google Workspace Service Accounts
+
+Workspace admins can avoid per-user browser OAuth by using a Google service account with domain-wide delegation.
+
+1. Create a Google Cloud service account in the Workspace-owned project.
+2. Create and download a JSON key for the service account.
+3. In the Google Admin Console, authorize the service account client ID for:
+   - `https://www.googleapis.com/auth/gmail.readonly`
+   - `https://www.googleapis.com/auth/gmail.modify`
+   - `https://mail.google.com/` if you will run `delete-staged --permanent`
+4. Store the key with owner-only permissions, for example `chmod 600 /path/to/workspace-service-account.json`.
+
+Configure the key as the default Google credential:
+
+```toml
+[oauth]
+service_account_key = "/path/to/workspace-service-account.json"
+```
+
+Or bind it to a named app:
+
+```toml
+[oauth.apps.acme]
+service_account_key = "/path/to/acme-service-account.json"
+```
+
+Then add accounts normally:
+
+```bash
+msgvault add-account you@acme.com
+msgvault add-account teammate@acme.com --oauth-app acme
+```
+
+Service account mode validates the delegated Gmail profile and registers the source, but it does not create per-user token files. Do not combine service-account accounts with `--headless` or `--force`; delegated tokens are minted on demand.
+
 ### Headless Server Setup
 
 When running msgvault on a headless server (SSH, VPS, Docker), there is no browser available for OAuth. Google's device code flow does not support Gmail scopes, so you must authorize on a machine with a browser and copy the token to your server.

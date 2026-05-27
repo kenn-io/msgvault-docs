@@ -68,16 +68,22 @@ msgvault search "from:boss@company.com has:attachment after:2024-01-01"
 msgvault search "quarterly report"
 ```
 
-## Account Filter
+## Account and Collection Filters
 
-In multi-account archives, use `--account` to limit results to a specific account:
+In multi-account archives, use `--account` to limit results to a specific account, or `--collection` to search every member account in a named collection:
 
 ```bash
 msgvault search "quarterly report" --account work@company.com
+msgvault search "quarterly report" --collection Work
 
-# List all messages for an account (no search query needed)
+# List all messages for an account or collection (no search query needed)
 msgvault search --account work@company.com
+msgvault search --collection Work
 ```
+
+The two flags are mutually exclusive. Collection filters work in full-text, vector, and hybrid local search modes.
+
+SQLite FTS ranking is weighted to better match the PostgreSQL-backed search behavior used by other query paths, so subject/body weighting should feel more consistent across local tools.
 
 ## JSON Output
 

@@ -30,7 +30,7 @@ full rebuild embeds every non-deleted message row, including imported
 chat messages. Chat import commands do not auto-enqueue new rows into
 an existing vector generation, so run
 `msgvault build-embeddings --full-rebuild --yes` after importing
-iMessage, WhatsApp, or Google Voice data if you want those messages in
+local files or chat/text data if you want those messages in
 the vector index. Chat-specific preprocessing and ranking are not
 separate yet.
 </Aside>
@@ -87,11 +87,16 @@ dimension = 768
 batch_size = 32                          # embeddings per HTTP call
 timeout = "30s"
 max_retries = 3
-max_input_chars = 2000                   # see sizing guidance below
+max_input_chars = 2000                   # per-chunk cap; see sizing guidance below
+eta_window = 10                          # progress ETA smoothing window
 
 [vector.preprocess]
 strip_quotes = true                      # drop quoted reply blocks before embedding
 strip_signatures = true                  # drop common `-- ` signature blocks
+strip_html = true                        # convert HTML-only bodies to text and remove markup
+strip_base64 = true                      # remove base64/data blobs before HTML stripping
+strip_url_tracking = true                # remove common tracking query params from URLs
+collapse_whitespace = true               # normalize repeated spaces and blank lines
 
 [vector.search]
 rrf_k = 60                               # RRF constant; higher flattens score differences
@@ -112,10 +117,15 @@ rebuild-with-sqlite-vec error when vector features are requested.
 
 ### Matching `max_input_chars` to your embedder's context window
 
-`max_input_chars` is an upper bound in characters; the embedder
-converts this to tokens on its own. Set it below the embedder's
-maximum context or full-length messages can fail with HTTP 400
-during `msgvault build-embeddings`.
+`max_input_chars` is an upper bound in characters per embedding
+chunk; the embedder converts this to tokens on its own. Set it below
+the embedder's maximum context or individual chunks can fail with
+HTTP 400 during `msgvault build-embeddings`.
+
+Long post-preprocess messages are split into overlapping chunks
+instead of being truncated to one embedding input. Chunk boundaries
+prefer paragraph breaks, then sentence breaks, then word boundaries,
+falling back to a hard rune boundary only when needed.
 
 Practical guidance:
 
@@ -125,9 +135,10 @@ Practical guidance:
 - **Self-hosted models:** match the actual context window exposed by
   your server, not just the upstream model card.
 
-If `msgvault build-embeddings` fails with repeated `HTTP 400` warnings, check
-the embedder's logs. `the input length exceeds the context length`
-confirms you need to lower `max_input_chars`.
+If `msgvault build-embeddings` logs `HTTP 400`, msgvault now includes
+the response body from the embedder when available. Check both the
+CLI log and the embedder's own logs. `the input length exceeds the
+context length` confirms you need to lower `max_input_chars`.
 
 ## Initial Embedding
 
@@ -155,6 +166,11 @@ again and it picks up from where it left off.
 
 The initial embed is the largest and longest operation. Runtime is
 roughly proportional to archive size divided by embedding throughput.
+Progress output reports completed/total messages, a recent-window
+throughput rate, milliseconds per message, microseconds per character,
+and an ETA once enough samples are available. If a failing batch is
+downshifted to smaller requests, the ETA window keeps those singleton
+retries from dominating the displayed rate.
 
 ## Keeping the Index Up to Date
 
@@ -210,9 +226,8 @@ trigger).
 |---|---|
 | `sync-full` / `sync` (Gmail, IMAP) | Yes |
 | Scheduled syncs in `msgvault serve` | Yes |
-| `import-emlx` (Apple Mail backup) | No. Re-run `--full-rebuild` after large imports |
-| `import-mbox` / `import` (mbox, eml) | No. Re-run `--full-rebuild` after large imports |
-| Chat imports (iMessage, WhatsApp, Google Voice) | No. Run a full rebuild after importing if you want chats included |
+| `import-pst`, `import-emlx`, `import-mbox` | No. Re-run `--full-rebuild` after large imports |
+| Chat/text imports (iMessage, WhatsApp, Google Voice, Messenger, SyncTech SMS) | No. Run a full rebuild after importing if you want chats included |
 
 For ingest paths that do not auto-enqueue, running
 `msgvault build-embeddings --full-rebuild --yes` rebuilds the index over the
@@ -266,21 +281,23 @@ those.
 
 ## Model Rotation
 
-To switch models or dimensions, update `[vector.embeddings].model`
-and/or `.dimension` in your config, then run:
+To switch models, dimensions, preprocessing settings, or
+`max_input_chars`, update your config, then run:
 
 ```bash
 msgvault build-embeddings --full-rebuild --yes
 ```
 
 This builds a new generation with the new fingerprint and activates
-it atomically when the build completes. While the rebuild is in
-flight, `mode=vector` and `mode=hybrid` return `index_stale` (the
+it atomically when the build completes. The fingerprint includes the
+model, dimension, preprocessing policy, `max_input_chars`, and
+embedding output policy. While the rebuild is in flight,
+`mode=vector` and `mode=hybrid` return `index_stale` (the
 previously-active generation no longer matches the configured
 fingerprint, so search refuses to serve potentially-mismatched
-results). Use `mode=fts` until the new generation activates; it
-does not depend on the vector index. Once `msgvault build-embeddings` reports
-the new generation activated, vector and hybrid modes resume.
+results). Use `mode=fts` until the new generation activates; it does
+not depend on the vector index. Once `msgvault build-embeddings`
+reports the new generation activated, vector and hybrid modes resume.
 
 ## Troubleshooting
 
@@ -290,18 +307,22 @@ conditions as command errors rather than structured codes.
 | Error | Meaning | Recovery |
 |---|---|---|
 | `vector_not_enabled` | The server or MCP process did not wire a vector backend, usually because `[vector] enabled = false`. | Set `enabled = true`, configure `[vector.embeddings]`, and start with a `sqlite_vec` build. |
-| `index_stale` | Active generation's model/dimension doesn't match the configured `[vector.embeddings]` fingerprint. | Run `msgvault build-embeddings --full-rebuild --yes`. |
+| `index_stale` | Active generation's fingerprint does not match the current model, dimension, preprocessing policy, `max_input_chars`, or embedding output policy. | Run `msgvault build-embeddings --full-rebuild --yes`. |
 | `index_building` | No active generation yet; one is being built. | Finish running `msgvault build-embeddings` or wait for the scheduler. Use `mode=fts` for the interim. |
 | `missing_free_text` | `mode=vector` or `mode=hybrid` used with a filter-only query (no free text to embed). | Add free-text terms to `q`, or switch to `mode=fts`. |
 | `pagination_unsupported` | Request asked for `page>1` with `mode=vector|hybrid`. | Use `page=1` with a larger `page_size` instead. |
 | `invalid_mode` | `mode=` value other than `fts`, `vector`, `hybrid`. | Pick one of those. |
 | `embedding_timeout` | The embedding endpoint did not respond before the request deadline (transient: slow/cold model, network blip). | Retry; if persistent, raise `[vector.embeddings].timeout` or use a faster endpoint. |
 
-`msgvault build-embeddings` repeatedly logs `embed batch failed ... HTTP 400`
-and aborts after 5 consecutive failures: check the embedder's logs.
-If they say `the input length exceeds the context length` (Ollama)
-or an equivalent token-limit error, lower `max_input_chars` to match
-the model's context window. See the sizing guidance above.
+For non-429 HTTP 4xx errors, msgvault treats the response as
+permanent and includes up to the first few KiB of the response body in
+the error. If a batch contains both good and bad rows, the worker
+downshifts to smaller batches and then single-message requests so
+valid messages can still be embedded while the failing row is dropped
+or reported. If the body says `the input length exceeds the context
+length` (Ollama) or an equivalent token-limit error, lower
+`max_input_chars` to match the model's context window. See the sizing
+guidance above.
 
 To confirm the binary was built with vector support:
 
@@ -327,21 +348,25 @@ because recent syncs have not yet been drained).
 
 ## What Gets Embedded
 
-The embedder processes one vector per message. Per-message input is
-assembled from `subject` and `body_text` after preprocessing
-(configurable in `[vector.preprocess]`):
+The embedder processes one or more vectors per message. Per-message
+input is assembled from `subject` and `body_text`. HTML-only messages
+fall back to `body_html` converted to text. After preprocessing, long
+messages are split into overlapping chunks; each chunk becomes one
+vector tied back to the same message.
 
 - Optional stripping of quoted-reply blocks (`> ...` lines and
   common reply-preamble markers).
 - Optional stripping of trailing signatures (lines after `-- `).
-- Truncation at `max_input_chars` at a UTF-8 rune boundary.
+- Optional removal of base64/data blobs before HTML cleanup.
+- Optional removal of HTML markup and script/style blocks.
+- Optional removal of common URL tracking parameters such as `utm_*`,
+  `fbclid`, and `gclid`.
+- Optional whitespace cleanup.
+- Chunking at `max_input_chars` with overlap for long messages.
 
 Messages deleted at the source (`deleted_from_source_at IS NOT NULL`)
-are skipped entirely. Messages without a `body_text` fall back to
-HTML-to-text conversion of `body_html` so HTML-only messages still
-contribute full-body embeddings. Messages with neither body field use
-the subject only; if the subject is also empty, the embedder receives
-an empty string for that row.
+are skipped entirely. Messages that become empty after preprocessing
+are marked complete and not sent to the embedding endpoint.
 
 ## See Also
 

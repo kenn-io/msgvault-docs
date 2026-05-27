@@ -23,12 +23,16 @@ data_dir = "/path/to/msgvault/data"
 database_url = "/path/to/msgvault.db"
 
 [oauth]
-# Path to Google OAuth client secrets JSON (required for Gmail)
+# Path to Google OAuth client secrets JSON for browser OAuth
 client_secrets = "/path/to/client_secret.json"
+
+# Google service account key for Workspace domain-wide delegation (optional)
+# service_account_key = "/path/to/service-account.json"
 
 # Named OAuth apps for Google Workspace orgs (optional)
 [oauth.apps.acme]
 client_secrets = "/path/to/acme_workspace_secret.json"
+# service_account_key = "/path/to/acme_service_account.json"
 
 [microsoft]
 # Azure AD app registration client ID (required for M365)
@@ -74,6 +78,24 @@ backend = "sqlite-vec"
 endpoint = "http://localhost:11434/v1"
 model = "nomic-embed-text"
 dimension = 768
+eta_window = 10
+
+[vector.preprocess]
+strip_quotes = true
+strip_signatures = true
+strip_html = true
+strip_base64 = true
+strip_url_tracking = true
+collapse_whitespace = true
+
+[[synctech_sms.sources]]
+name = "phone-backups"
+enabled = true
+backend = "drive"
+folder_id = "google-drive-folder-id"
+google_account = "you@gmail.com"
+owner_phone = "+14155551234"
+schedule = "30 4 * * *"
 ```
 
 ### Windows Paths
@@ -105,17 +127,21 @@ Attachments and OAuth tokens are stored in subdirectories of `data_dir` (`attach
 
 | Key | Default | Description |
 |---|---|---|
-| `client_secrets` | — | Path to Google OAuth `client_secret.json` (required for Gmail) |
+| `client_secrets` | — | Path to Google OAuth `client_secret.json` for browser OAuth flows |
+| `service_account_key` | — | Path to a Google service account key JSON for Workspace domain-wide delegation |
 
 #### `[oauth.apps.<name>]`
 
-Named OAuth apps for Google Workspace organizations that require their own OAuth credentials. Each entry defines a separate `client_secret.json`. Use `--oauth-app <name>` with `add-account` to bind an account to a named app.
+Named OAuth apps for Google Workspace organizations that require their own OAuth credentials. Each entry can define a separate browser OAuth `client_secret.json`, service account key, or both. Use `--oauth-app <name>` with `add-account` to bind an account to a named app.
 
 | Key | Default | Description |
 |---|---|---|
 | `client_secrets` | — | Path to the org's `client_secret.json` |
+| `service_account_key` | — | Path to the org's Google service account key JSON |
 
 See [OAuth Setup: Google Workspace Accounts](/guides/oauth-setup/#google-workspace-accounts) for when and why you need named apps.
+
+When `service_account_key` is configured, `msgvault add-account <email>` validates the delegated Gmail profile and registers the account without storing a per-user refresh token. The service account key file must be owner-only on Unix-like systems, for example `chmod 600 /path/to/service-account.json`.
 
 ### `[microsoft]`
 
@@ -141,6 +167,8 @@ Structured file logging. Disabled by default. Enable it to get persistent, machi
 | `sql_slow_ms` | `100` | Threshold in ms above which SQL queries are logged at warn level. `0` uses the built-in default (100 ms). |
 
 Log files are named `msgvault-YYYY-MM-DD.log` (UTC date), written as newline-delimited JSON. When a daily log exceeds 50 MiB it rotates to `.log.1`, `.log.2`, etc. (up to 5 rotated files).
+
+When SQL logging is enabled, slow/error entries include query arguments and streaming query durations, which makes it easier to diagnose expensive reads without enabling full trace output.
 
 Use `msgvault logs` to view and tail log files. See [CLI Reference: logs](/cli-reference/#logs).
 
@@ -178,13 +206,34 @@ Affected CLI commands: `search`, `show-message`, `stats`, `list-accounts`, `tui`
 
 ### `[[accounts]]`
 
-Scheduled sync accounts for the web server. Each `[[accounts]]` entry defines a cron schedule for automatic background syncing.
+Scheduled sync accounts for the web server. Each `[[accounts]]` entry defines a cron schedule for automatic background syncing. Gmail and IMAP sources are supported; for IMAP, use the account display name/email when available rather than the raw `imaps://...` source identifier.
 
 | Key | Default | Description |
 |---|---|---|
-| `email` | (required) | Gmail account email address |
+| `email` | (required) | Account identifier or display name to sync |
 | `schedule` | — | Cron expression for sync schedule (e.g., `0 * * * *`) |
 | `enabled` | `true` | Whether scheduled sync is active for this account |
+
+### SyncTech SMS Sources
+
+Scheduled SMS Backup & Restore sources are configured with `[[synctech_sms.sources]]` entries. These are created automatically by `msgvault add-synctech-sms-drive`, but can also be edited directly.
+
+| Key | Default | Description |
+|---|---|---|
+| `name` | (required) | Source name used by `sync-synctech-sms <name>` and scheduler logs |
+| `enabled` | `true` | Whether the source is active |
+| `backend` | `local` | `local` for a path on disk, or `drive` for Google Drive |
+| `path` | — | Local XML/ZIP file or directory when `backend = "local"` |
+| `folder_id` | — | Google Drive folder ID when `backend = "drive"` |
+| `google_account` | — | Google account used for Drive access |
+| `owner_phone` | (required) | Owner phone number in E.164 format |
+| `schedule` | — | Cron expression used by `msgvault serve` |
+| `include_sms` | `true` | Import SMS records |
+| `include_mms` | `true` | Import MMS records |
+| `include_calls` | `true` | Import call logs |
+| `include_attachments` | `true` | Import MMS attachments |
+| `stable_after` | `10m` | How long Drive files must remain unchanged before import |
+| `oauth_app` | — | Named Google OAuth app to use |
 
 ### `[vector]`
 
@@ -206,12 +255,13 @@ External OpenAI-compatible embedding endpoint used to convert message text into 
 | `model` | (required) | Model name to pass in each request (e.g., `nomic-embed-text`). |
 | `dimension` | (required) | Vector dimension. Must match the model's output dimension. |
 | `api_key_env` | — | Name of an environment variable containing the API key. Omit for anonymous endpoints. |
-| `batch_size` | `32` | Messages per HTTP call. |
+| `batch_size` | `32` | Embedding inputs per HTTP call. Long messages can contribute multiple chunk inputs. |
 | `timeout` | `30s` | Per-request timeout. |
 | `max_retries` | `3` | Retries per batch on transient failures. |
-| `max_input_chars` | `32768` | Character cap per message before embedding. Set below your model's context window (e.g., `2000` for Ollama's default `nomic-embed-text`). |
+| `max_input_chars` | `32768` | Character cap per embedding chunk. Set below your model's context window (e.g., `2000` for Ollama's default `nomic-embed-text`). |
+| `eta_window` | `10` | Number of recent progress samples used for ETA smoothing. |
 
-The pair `(model, dimension)` forms the index generation fingerprint. Changing either value triggers a stale-index error on the next query until you run `msgvault build-embeddings --full-rebuild`.
+The index generation fingerprint includes the model, dimension, preprocessing settings, `max_input_chars`, and embedding policy. Changing those settings triggers a stale-index error on the next vector/hybrid query until you run `msgvault build-embeddings --full-rebuild`.
 
 #### `[vector.preprocess]`
 
@@ -221,6 +271,10 @@ Controls text normalization before embedding.
 |---|---|---|
 | `strip_quotes` | `true` | Drop quoted reply blocks (`> ...` lines, reply preambles) before embedding. |
 | `strip_signatures` | `true` | Drop trailing signature blocks (content after `-- `). |
+| `strip_html` | `true` | Convert HTML-only bodies to text and remove HTML markup before embedding. |
+| `strip_base64` | `true` | Remove base64/data blobs before HTML stripping so encoded data does not crowd out prose. |
+| `strip_url_tracking` | `true` | Remove common tracking parameters such as `utm_*`, `fbclid`, and `gclid` from URLs. |
+| `collapse_whitespace` | `true` | Normalize repeated horizontal whitespace and blank lines. |
 
 #### `[vector.search]`
 

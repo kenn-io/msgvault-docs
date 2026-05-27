@@ -34,11 +34,11 @@ Everything stays on your local machine. msgvault stores messages in a SQLite dat
 
 <p class="faq-question">Can I use msgvault with non-Gmail accounts?</p>
 
-Yes. You can sync from any standard IMAP server using `msgvault add-imap`, import email from local files using `import-mbox` (standard MBOX archives) or `import-emlx` (Apple Mail exports), and import text messages from WhatsApp, iMessage, and Google Voice. All messages are stored in the same database and work with all the same tools: search, TUI, MCP server, web server, and export. See [Setup Guide](/setup/#add-an-imap-account) for IMAP setup, [Importing Local Email](/usage/importing/) for file imports, and [Text Messages](/usage/text-messages/) for chat imports.
+Yes. You can sync from any standard IMAP server using `msgvault add-imap`, use Microsoft 365/Outlook.com OAuth via `add-o365`, import email from local files using `import-pst`, `import-mbox`, or `import-emlx`, and import chats/texts from WhatsApp, iMessage, Google Voice, Facebook Messenger, and SMS Backup & Restore. All messages are stored in the same database and work with the same tools: search, TUI, MCP server, web server, and export. See [Setup Guide](/setup/#add-an-imap-account) for IMAP setup, [Importing Local Email](/usage/importing/) for file imports, and [Text Messages](/usage/text-messages/) for chat imports.
 
 <p class="faq-question">Does deleting email in msgvault delete it from Gmail?</p>
 
-Only if you explicitly run the full deletion workflow. Staging messages for deletion in the TUI does not touch Gmail or your IMAP provider. You must run `msgvault delete-staged` to permanently delete staged messages from Gmail or your IMAP server. This is irreversible, so review your staged manifests carefully. Your local archive is always preserved. See [Deleting Email](/usage/deletion/) for the complete process.
+Only if you explicitly run the full deletion workflow. Staging messages for deletion in the TUI does not touch Gmail or your IMAP provider. You must run `MSGVAULT_ENABLE_REMOTE_DELETE=1 msgvault delete-staged` to execute staged deletions. Gmail messages move to trash by default; `--permanent` opts into permanent Gmail deletion. IMAP deletion removes messages from the provider. Your local archive is always preserved. See [Deleting Email](/usage/deletion/) for the complete process.
 
 ---
 

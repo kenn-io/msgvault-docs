@@ -98,7 +98,7 @@ the state of the index.
       "id": 3,
       "model": "nomic-embed-text-v1.5",
       "dimension": 768,
-      "fingerprint": "nomic-embed-text-v1.5:768",
+      "fingerprint": "nomic-embed-text-v1.5:768:p1-111111:c32768:e1",
       "state": "active",
       "activated_at": "2026-04-18T15:12:33Z",
       "message_count": 142820
@@ -177,7 +177,8 @@ Full message details including body and attachment metadata.
   "labels": ["INBOX", "IMPORTANT"],
   "has_attachments": true,
   "size_bytes": 52480,
-  "body": "<full message body>",
+  "body": "<plain text body, or HTML when no plain text body exists>",
+  "body_html": "<html><body><p>Full HTML body</p></body></html>",
   "attachments": [
     {
       "filename": "q4-plan.pdf",
@@ -188,7 +189,28 @@ Full message details including body and attachment metadata.
 }
 ```
 
-The `cc` and `bcc` fields are included when the message has recipients of that type. They are omitted from the JSON response when empty.
+The `cc`, `bcc`, and `body_html` fields are included only when present. `body` is the plain-text body when one exists; for HTML-only messages, it falls back to the HTML body so callers still receive message content.
+
+---
+
+### GET `/api/v1/messages/{id}/inline?cid=<content-id>`
+
+Fetch an inline MIME image part by content ID. This is intended for rendering `cid:` images referenced by `body_html`.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `cid` | string | (required) | MIME `Content-ID` to fetch |
+
+Only inline image parts are served. SVG images and non-image inline parts are rejected with `415 unsupported_type`. If the query engine cannot fetch raw MIME, the endpoint returns `501 not_supported`.
+
+Successful responses set:
+
+| Header | Description |
+|---|---|
+| `Content-Type` | Inline image content type |
+| `Content-Disposition` | `inline` |
+| `Cache-Control` | `private, max-age=31536000, immutable` |
+| `X-Content-Type-Options` | `nosniff` |
 
 ---
 
@@ -247,12 +269,12 @@ to `mode=fts` instead.
   "returned": 12,
   "pool_saturated": false,
   "generation": {
-    "id": 3,
-    "model": "nomic-embed-text-v1.5",
-    "dimension": 768,
-    "fingerprint": "nomic-embed-text-v1.5:768",
-    "state": "active"
-  },
+      "id": 3,
+      "model": "nomic-embed-text-v1.5",
+      "dimension": 768,
+      "fingerprint": "nomic-embed-text-v1.5:768:p1-111111:c32768:e1",
+      "state": "active"
+    },
   "took_ms": 84,
   "results": [
     {
@@ -452,7 +474,7 @@ cors_max_age = 3600
 
 ## Scheduled Sync
 
-The server can automatically sync accounts on a cron-based schedule. Add `[[accounts]]` sections to your config:
+The server can automatically sync Gmail and IMAP accounts on a cron-based schedule. Add `[[accounts]]` sections to your config:
 
 ```toml
 [[accounts]]
@@ -461,16 +483,18 @@ schedule = "0 * * * *"    # every hour
 enabled = true
 
 [[accounts]]
-email = "work@gmail.com"
+email = "you@fastmail.com"
 schedule = "*/15 * * * *" # every 15 minutes
 enabled = true
 ```
 
-The scheduler starts automatically with `msgvault serve` when account schedules are configured. Use the `/api/v1/scheduler/status` endpoint to monitor schedule state, and `/api/v1/sync/{account}` to trigger a manual sync outside the schedule.
+The scheduler starts automatically with `msgvault serve` when account schedules are configured. It resolves each entry to a syncable source type, including Gmail and IMAP. Use the `/api/v1/scheduler/status` endpoint to monitor schedule state, and `/api/v1/sync/{account}` to trigger a manual sync outside the schedule.
 
 <Aside type="note">
-Each account must have completed an initial full sync (`msgvault sync-full`) before scheduled sync will work. The scheduler runs incremental syncs only.
+Each account must have completed an initial full sync (`msgvault sync-full`) before scheduled sync will work. Gmail scheduled syncs use incremental history sync. IMAP scheduled syncs run the IMAP sync path and skip messages already present locally.
 </Aside>
+
+`msgvault serve` also runs scheduled SyncTech SMS Backup & Restore Drive sources configured under `[[synctech_sms.sources]]`; see [Configuration](/configuration/#synctech-sms-sources).
 
 ## Security Model
 
@@ -504,7 +528,7 @@ All server settings go in the `[server]` section of `config.toml`. Account sched
 
 | Key | Default | Description |
 |---|---|---|
-| `email` | (required) | Gmail account email address |
+| `email` | (required) | Gmail/IMAP account identifier or display name |
 | `schedule` | — | Cron expression for sync schedule |
 | `enabled` | `true` | Whether scheduled sync is active |
 

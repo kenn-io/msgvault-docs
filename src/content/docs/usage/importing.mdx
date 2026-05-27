@@ -1,11 +1,46 @@
 ---
 title: Importing Local Email
-description: Import MBOX archives and Apple Mail exports into msgvault.
+description: Import PST archives, MBOX archives, and Apple Mail exports into msgvault.
 ---
 
-msgvault can import email from local files, not just Gmail. This lets you archive messages from any email provider that supports MBOX export, or import directly from Apple Mail's on-disk storage. For live syncing from non-Gmail providers, see [IMAP account setup](/setup/#add-an-imap-account).
+msgvault can import email from local files, not just Gmail. This lets you archive Microsoft Outlook PST files, messages from any provider that supports MBOX export, or Apple Mail's on-disk storage. For live syncing from non-Gmail providers, see [IMAP account setup](/setup/#add-an-imap-account).
 
 Imported messages are stored in the same database as Gmail messages. You can search, browse, export, and analyze them with all the same tools (TUI, CLI, MCP server, web server). Labels, threading, attachments, and full-text search all work the same way.
+
+## import-pst
+
+Import a Microsoft Outlook PST archive.
+
+```bash
+msgvault import-pst <identifier> <pst-file>
+```
+
+The identifier is the email address associated with the archive. PST folder structure is preserved as labels, so `Inbox/Projects` becomes a searchable label path. Email messages are imported; calendar, contact, task, and note items are skipped automatically.
+
+### Examples
+
+```bash
+# Import a PST archive
+msgvault import-pst you@company.com /path/to/archive.pst
+
+# Skip folders you do not want in the archive
+msgvault import-pst you@outlook.com backup.pst --skip-folder "Deleted Items"
+
+# Start from the beginning instead of resuming an interrupted run
+msgvault import-pst you@outlook.com backup.pst --no-resume
+```
+
+### Flags
+
+| Flag | Default | Description |
+|---|---|---|
+| `--source-type` | `pst` | Source type recorded in the database |
+| `--skip-folder` | — | Folder name to skip, case-insensitive; repeat for multiple folders |
+| `--no-resume` | `false` | Start fresh instead of resuming an interrupted import |
+| `--checkpoint-interval` | `200` | Save progress every N messages |
+| `--no-attachments` | `false` | Skip writing attachments to disk |
+
+PST imports are resumable. msgvault records a content-based archive fingerprint so an interrupted import resumes only when the file still matches the checkpointed archive.
 
 ## import-mbox
 
@@ -39,6 +74,7 @@ msgvault import-mbox you@hey.com hey-export.zip --source-type hey --label hey
 | `--no-resume` | `false` | Start fresh instead of resuming an interrupted import |
 | `--checkpoint-interval` | `200` | Save progress every N messages |
 | `--no-attachments` | `false` | Skip writing attachments to disk (messages still record attachment metadata) |
+| `--no-default-identity` | `false` | Do not auto-confirm the identifier as this source's "me" identity |
 
 ### Where to get MBOX files
 
@@ -104,6 +140,7 @@ msgvault import-emlx me@gmail.com ~/Mail/INBOX.mbox/
 | `--no-resume` | `false` | Start fresh instead of resuming an interrupted import |
 | `--checkpoint-interval` | `200` | Save progress every N messages |
 | `--no-attachments` | `false` | Skip writing attachments to disk (messages still record attachment metadata) |
+| `--no-default-identity` | `false` | Do not auto-confirm the identifier as this source's "me" identity |
 
 ### How Apple Mail organizes files
 
@@ -165,7 +202,9 @@ The `.partial.emlx` files that Apple Mail creates for incomplete downloads are a
 
 ## Deduplication
 
-Both importers deduplicate messages by SHA-256 hash of the raw MIME content. Running the same import twice produces no duplicates. If the same message appears in multiple MBOX files or Apple Mail mailboxes, it is stored once and given labels from each location.
+MBOX and EMLX imports deduplicate messages by SHA-256 hash of the raw MIME content. Running the same import twice produces no duplicates. If the same message appears in multiple MBOX files or Apple Mail mailboxes, it is stored once and given labels from each location.
+
+PST imports namespace source message IDs by a stable archive fingerprint, so importing multiple PST files into the same source does not collide on Outlook EntryIDs that are only unique inside one archive. Re-running the same PST import is idempotent and resumes from checkpoints by default.
 
 ## Resumable Imports
 
