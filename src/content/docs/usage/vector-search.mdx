@@ -29,7 +29,7 @@ Vector indexing operates over msgvault's shared `messages` table. A
 full rebuild embeds every non-deleted message row, including imported
 chat messages. Chat import commands do not auto-enqueue new rows into
 an existing vector generation, so run
-`msgvault build-embeddings --full-rebuild --yes` after importing
+`msgvault embeddings build --full-rebuild --yes` after importing
 local files or chat/text data if you want those messages in
 the vector index. Chat-specific preprocessing and ranking are not
 separate yet.
@@ -120,7 +120,7 @@ rebuild-with-sqlite-vec error when vector features are requested.
 `max_input_chars` is an upper bound in characters per embedding
 chunk; the embedder converts this to tokens on its own. Set it below
 the embedder's maximum context or individual chunks can fail with
-HTTP 400 during `msgvault build-embeddings`.
+HTTP 400 during `msgvault embeddings build`.
 
 Long post-preprocess messages are split into overlapping chunks
 instead of being truncated to one embedding input. Chunk boundaries
@@ -135,7 +135,7 @@ Practical guidance:
 - **Self-hosted models:** match the actual context window exposed by
   your server, not just the upstream model card.
 
-If `msgvault build-embeddings` logs `HTTP 400`, msgvault now includes
+If `msgvault embeddings build` logs `HTTP 400`, msgvault now includes
 the response body from the embedder when available. Check both the
 CLI log and the embedder's own logs. `the input length exceeds the
 context length` confirms you need to lower `max_input_chars`.
@@ -146,7 +146,7 @@ Once vector search is enabled and your archive has synced or imported
 messages, embed it:
 
 ```bash
-msgvault build-embeddings --full-rebuild --yes
+msgvault embeddings build --full-rebuild --yes
 ```
 
 This creates a new **building generation**, seeds the pending queue
@@ -158,9 +158,9 @@ vector/hybrid search return `index_building`; use `mode=fts` for the
 interim.
 
 <Aside type="tip">
-You can interrupt and resume. Each invocation of `msgvault build-embeddings`
+You can interrupt and resume. Each invocation of `msgvault embeddings build`
 processes whatever is currently pending and activates the generation
-when the queue reaches zero. `Ctrl+C` is safe; run `msgvault build-embeddings`
+when the queue reaches zero. `Ctrl+C` is safe; run `msgvault embeddings build`
 again and it picks up from where it left off.
 </Aside>
 
@@ -186,20 +186,21 @@ If you run `msgvault sync-full` or `msgvault sync` (alias:
 non-retired generation during the sync. In steady state that means the
 active generation; during a rebuild it means both the old active
 generation and the new building generation. Run
-`msgvault build-embeddings` (no `--full-rebuild`) to drain the queue:
+`msgvault embeddings build` (no `--full-rebuild`) to drain the queue:
 
 ```bash
 # Sync new messages (auto-enqueues them for embedding)
 msgvault sync you@gmail.com
 
 # Drain the embedding queue into the active generation
-msgvault build-embeddings
+msgvault embeddings build
 ```
 
-`msgvault build-embeddings` without `--full-rebuild` is a short, incremental
+`msgvault embeddings build` without `--full-rebuild` is a short, incremental
 operation: it picks up the configured active generation, drains any
-pending rows, and exits. You can schedule it via cron, run it after
-every sync, or chain it (`sync && build-embeddings`).
+pending rows, and exits. `msgvault embeddings resume` is a synonym for this
+drain that never starts a full rebuild. You can schedule either via cron,
+run it after every sync, or chain it (`msgvault sync && msgvault embeddings build`).
 
 ### Daemon workflow (`msgvault serve`)
 
@@ -230,7 +231,7 @@ trigger).
 | Chat/text imports (iMessage, WhatsApp, Google Voice, Messenger, SyncTech SMS) | No. Run a full rebuild after importing if you want chats included |
 
 For ingest paths that do not auto-enqueue, running
-`msgvault build-embeddings --full-rebuild --yes` rebuilds the index over the
+`msgvault embeddings build --full-rebuild --yes` rebuilds the index over the
 full archive including the newly-imported messages. A same-model full
 rebuild is atomic from the searcher's perspective: vector and hybrid
 queries keep answering from the previous active generation until the
@@ -285,7 +286,7 @@ To switch models, dimensions, preprocessing settings, or
 `max_input_chars`, update your config, then run:
 
 ```bash
-msgvault build-embeddings --full-rebuild --yes
+msgvault embeddings build --full-rebuild --yes
 ```
 
 This builds a new generation with the new fingerprint and activates
@@ -296,7 +297,7 @@ embedding output policy. While the rebuild is in flight,
 previously-active generation no longer matches the configured
 fingerprint, so search refuses to serve potentially-mismatched
 results). Use `mode=fts` until the new generation activates; it does
-not depend on the vector index. Once `msgvault build-embeddings`
+not depend on the vector index. Once `msgvault embeddings build`
 reports the new generation activated, vector and hybrid modes resume.
 
 ## Troubleshooting
@@ -307,8 +308,8 @@ conditions as command errors rather than structured codes.
 | Error | Meaning | Recovery |
 |---|---|---|
 | `vector_not_enabled` | The server or MCP process did not wire a vector backend, usually because `[vector] enabled = false`. | Set `enabled = true`, configure `[vector.embeddings]`, and start with a `sqlite_vec` build. |
-| `index_stale` | Active generation's fingerprint does not match the current model, dimension, preprocessing policy, `max_input_chars`, or embedding output policy. | Run `msgvault build-embeddings --full-rebuild --yes`. |
-| `index_building` | No active generation yet; one is being built. | Finish running `msgvault build-embeddings` or wait for the scheduler. Use `mode=fts` for the interim. |
+| `index_stale` | Active generation's fingerprint does not match the current model, dimension, preprocessing policy, `max_input_chars`, or embedding output policy. | Run `msgvault embeddings build --full-rebuild --yes`. |
+| `index_building` | No active generation yet; one is being built. | Finish running `msgvault embeddings build` or wait for the scheduler. Use `mode=fts` for the interim. |
 | `missing_free_text` | `mode=vector` or `mode=hybrid` used with a filter-only query (no free text to embed). | Add free-text terms to `q`, or switch to `mode=fts`. |
 | `pagination_unsupported` | Request asked for `page>1` with `mode=vector|hybrid`. | Use `page=1` with a larger `page_size` instead. |
 | `invalid_mode` | `mode=` value other than `fts`, `vector`, `hybrid`. | Pick one of those. |

@@ -648,12 +648,26 @@ Use this if `verify` reports FTS5 shadow-table corruption such as a malformed in
 
 ---
 
-## build-embeddings
+## embeddings
 
-Build or update the vector embedding index used by `--mode vector` and `--mode hybrid` search. Requires a build with `sqlite_vec` support (default via `make build`) and a configured `[vector.embeddings]` endpoint.
+Manage the vector embedding index used by `--mode vector` and `--mode hybrid` search. Requires a build with `sqlite_vec` support (default via `make build`) and a configured `[vector.embeddings]` endpoint. See [Vector Search](/usage/vector-search/) for prerequisites, model rotation, and troubleshooting.
 
 ```bash
-msgvault build-embeddings [flags]
+msgvault embeddings <subcommand> [flags]
+```
+
+| Subcommand | Description |
+|---|---|
+| `build` | Build or update the index. Incremental by default; `--full-rebuild` starts a new generation. |
+| `resume` | Drain the pending queue for the building or active generation. Always incremental. |
+| `list` | List index generations with their state, model, dimension, and pending count. |
+| `activate <generation-id>` | Activate a completed building generation, retiring the current active one. |
+| `retire <generation-id>` | Retire a generation. |
+
+### embeddings build
+
+```bash
+msgvault embeddings build [flags]
 ```
 
 | Flag | Description |
@@ -661,7 +675,51 @@ msgvault build-embeddings [flags]
 | `--full-rebuild` | Create a new index generation and rebuild from scratch. The new generation is activated atomically once pending work drains. Same-model rebuilds keep serving the previous active generation in the meantime; model or dimension changes return `index_stale` for vector/hybrid search until the new generation activates. |
 | `--yes` | Skip the confirmation prompt that `--full-rebuild` otherwise requires. |
 
-Without `--full-rebuild`, the command is incremental: it resumes any in-flight rebuild that matches the configured model, otherwise drains the pending queue for the active generation, then exits. Safe to schedule via cron (or let `msgvault serve` do it via `[vector.embed.schedule]`). See [Vector Search](/usage/vector-search/) for prerequisites, model rotation, and troubleshooting.
+Without `--full-rebuild`, the command is incremental: it resumes any in-flight rebuild that matches the configured model, otherwise drains the pending queue for the active generation, then exits. Safe to schedule via cron (or let `msgvault serve` do it via `[vector.embed.schedule]`).
+
+### embeddings resume
+
+```bash
+msgvault embeddings resume
+```
+
+Drain the pending queue and finish the current generation. If a generation matching the configured model is building, this embeds its remaining rows and activates it once the queue reaches zero; otherwise it tops up the active generation. Equivalent to `msgvault embeddings build` with no flags, but never starts a full rebuild.
+
+### embeddings list
+
+```bash
+msgvault embeddings list
+```
+
+Print one row per index generation: ID, state (`building`, `active`, or `retired`), model, dimension, embedded message count, pending count, fingerprint, and the start, completion, and activation timestamps.
+
+### embeddings activate
+
+```bash
+msgvault embeddings activate <generation-id> [flags]
+```
+
+Activate a completed building generation and retire the currently active one. By default this refuses to activate a generation that still has pending rows, has not finished seeding, or whose fingerprint does not match the current config.
+
+| Flag | Description |
+|---|---|
+| `--yes` | Skip the confirmation prompt. |
+| `--force` | Activate even with pending rows or a fingerprint mismatch. |
+
+### embeddings retire
+
+```bash
+msgvault embeddings retire <generation-id> [flags]
+```
+
+Mark a generation as retired. Retiring the active generation requires `--force-active`, since it leaves no generation serving vector/hybrid search.
+
+| Flag | Description |
+|---|---|
+| `--yes` | Skip the confirmation prompt. |
+| `--force-active` | Allow retiring the generation that is currently active. |
+
+`msgvault build-embeddings` remains as a deprecated alias for `msgvault embeddings build` (same `--full-rebuild` and `--yes` flags).
 
 ---
 
