@@ -1,13 +1,17 @@
 ---
 title: Multi-Account
-description: Archive multiple Gmail accounts in a single database.
+description: Archive multiple sources, group them into collections, and deduplicate safely.
 ---
+
+msgvault stores every source in one archive database: Gmail accounts, IMAP accounts, Microsoft 365 accounts, local imports, and chat/text imports. A source has an account identifier, optional display name, source type, labels, messages, attachments, and sync/import state.
 
 ## OAuth Apps and Tokens
 
 For personal Gmail accounts, a single `client_secret.json` supports all of them. Each `add-account` call authorizes one account and stores a separate token file.
 
 Google Workspace organizations often restrict OAuth to apps created within their own org. If a Workspace account fails to authorize with your default app, create a separate OAuth app inside that org and add it as a named app in `config.toml`. See the [OAuth Setup Guide](/guides/oauth-setup/#google-workspace-accounts) for the full walkthrough.
+
+Workspace admins can also use a Google service account with domain-wide delegation. Configure `service_account_key` under `[oauth]` or `[oauth.apps.<name>]`, authorize the service account client in the Google Admin Console, then run `msgvault add-account user@domain.com`. Service-account accounts do not store per-user refresh tokens; msgvault mints delegated tokens on demand.
 
 <img src="/oauth-multi-account.svg" alt="Diagram showing default and named OAuth apps creating separate token files for each account" width="720" />
 
@@ -20,6 +24,9 @@ msgvault add-account you@acme.com --oauth-app acme   # Workspace org
 
 # IMAP accounts (password)
 msgvault add-imap --host imap.fastmail.com --username you@fastmail.com
+
+# Microsoft 365 / Outlook.com (OAuth2 over IMAP)
+msgvault add-o365 you@outlook.com
 ```
 
 Gmail accounts open a browser for OAuth authorization. IMAP accounts prompt for a password and test the connection. All accounts share the same SQLite database and attachment storage.
@@ -49,7 +56,48 @@ msgvault sync work@company.com
 
 If a token expires during sync, msgvault prints the re-authorization URL with the account name so you can select the correct Google account. It will not auto-launch a browser during re-auth to prevent accidentally authorizing the wrong account.
 
-## Cross-Account Search
+## Identities
+
+Each account has a confirmed "me" identity: the email addresses, phone numbers, chat handles, or synthetic identifiers that mean you inside that source. Dedup uses this set for sent-copy detection. New Gmail, IMAP, Microsoft 365, MBOX, EMLX, WhatsApp, and Google Voice sources auto-confirm the source identifier by default; use `--no-default-identity` on supported add/import commands when that is not correct.
+
+```bash
+# Inspect identities
+msgvault identity list
+msgvault identity show work@company.com
+
+# Add or remove identifiers manually
+msgvault identity add work@company.com alias@company.com
+msgvault identity remove work@company.com old-alias@company.com
+```
+
+`identity list` can be scoped to one account or one collection:
+
+```bash
+msgvault identity list --account work@company.com
+msgvault identity list --collection Work
+```
+
+## Collections
+
+Collections are named groups of accounts. The default `All` collection is created automatically and includes every account. User-created collections let you search, report, and deduplicate a logical group without changing the underlying sources.
+
+```bash
+# Create a collection from two accounts
+msgvault collection create Work --accounts you@company.com,archive@company.com
+
+# Inspect and edit membership
+msgvault collection list
+msgvault collection show Work
+msgvault collection add Work --accounts old-pst@company.com
+msgvault collection remove Work --accounts archive@company.com
+
+# Delete only the collection record; sources and messages are untouched
+msgvault collection delete Work
+```
+
+`--accounts` accepts account identifiers and numeric source IDs.
+
+## Scoped Search and Stats
 
 Search queries run across all accounts by default:
 
@@ -57,18 +105,50 @@ Search queries run across all accounts by default:
 msgvault search "quarterly report"
 ```
 
-Use `--account` to limit results to a specific account:
+Use `--account` to limit results to a specific account, or `--collection` to limit results to all member accounts in a collection:
 
 ```bash
 msgvault search "quarterly report" --account work@company.com
+msgvault search "quarterly report" --collection Work
+msgvault stats --collection Work
+```
+
+`--account` and `--collection` are mutually exclusive.
+
+## Deduplication
+
+Deduplication groups duplicate messages by RFC 822 `Message-ID`. `--content-hash` also compares normalized raw MIME content when Message-ID matching is not enough. The survivor keeps the union of labels from the duplicate copies, and msgvault hides the pruned local rows.
+
+By default, `msgvault deduplicate` processes each account independently and never crosses source boundaries. Use `--account` to scope one account, or `--collection` to explicitly opt into cross-source comparison across a named collection.
+
+```bash
+# Preview without writing
+msgvault deduplicate --account work@company.com --dry-run
+msgvault deduplicate --collection Work --dry-run
+
+# Hide duplicates locally, creating a reversible batch
+msgvault deduplicate --collection Work
+
+# Undo a batch
+msgvault deduplicate --undo <batch-id>
+```
+
+Dedup only modifies the local msgvault database unless you pass `--delete-dups-from-source-server`, which stages same-source duplicate losers for the separate remote deletion workflow. Cross-source pruning is local-only and reversible with `--undo`.
+
+When you are certain hidden duplicates should be removed from the local archive, `delete-deduped` is the irreversible local hard-delete step:
+
+```bash
+msgvault delete-deduped --batch <batch-id>
+msgvault delete-deduped --all-hidden
+```
+
+`delete-deduped` backs up the database by default. After local hard deletion, rebuild the analytics and vector caches if you use them:
+
+```bash
+msgvault build-cache --full-rebuild
+msgvault embeddings build --full-rebuild
 ```
 
 ## TUI Filtering
 
-Filter the TUI to a specific account:
-
-```bash
-msgvault tui --account work@company.com
-```
-
-Or press `a` in the TUI to cycle through account filters interactively.
+Press `A` (uppercase) inside the TUI to open the account selector modal. Pick a single account to scope every view, or pick "All Accounts" to clear the filter. The currently selected account is shown in the title bar.

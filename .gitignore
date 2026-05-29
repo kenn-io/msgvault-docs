@@ -11,3 +11,5 @@ scripts/output/*.png
 
 public/install.sh
 public/install.ps1
+.kata.local.toml
+.kata.toml

@@ -5,6 +5,43 @@ description: Release history for msgvault
 
 All notable changes to msgvault, grouped by release.
 
+## 0.15.0
+<small>2026-05-28</small>
+
+**New features**
+
+- Microsoft Outlook PST archive import via `msgvault import-pst`, including folder labels, attachments, resumable checkpoints, and automatic skipping of non-email PST items.
+- Facebook Messenger Download Your Information import via `msgvault import-messenger`, with JSON and HTML export support.
+- SyncTech SMS Backup & Restore import via `msgvault import-synctech-sms`, plus Google Drive source configuration and one-shot sync commands for scheduled Android backups.
+- Per-account identities, named collections, scoped search/stats, and reversible deduplication workflows across accounts and collections.
+- Google service account support for Workspace domain-wide delegation, including per-app service account keys.
+- Message detail API responses now expose `body_html`, and inline image MIME parts can be fetched through a dedicated inline endpoint.
+- MCP StreamableHTTP transport with `msgvault mcp --http`.
+- MCP `search_by_domains` tool for finding messages where any participant belongs to one of several domains.
+
+**Improvements**
+
+- Vector embedding management is consolidated under a single `msgvault embeddings` command, with `build`, `resume`, `list`, `activate`, and `retire` subcommands covering the full index-generation lifecycle. `msgvault build-embeddings` still works as a deprecated alias for `msgvault embeddings build`.
+- Long messages are split into embedding chunks instead of being truncated to a single input.
+- Embedding preprocessing now handles HTML bodies, base64/data blobs, URL tracking parameters, and whitespace cleanup more aggressively.
+- Embedding progress reporting has steadier ETA handling, per-character timing, and better behavior when failed batches are downshifted.
+- SQLite full-text search ranking better matches the weighting used by PostgreSQL-backed paths.
+- iMessage imports can backfill participant display names from vCard contacts.
+- Scheduled sync dispatch now resolves source type and supports IMAP sources as well as Gmail. `msgvault serve` can also schedule SyncTech SMS Backup & Restore Drive sources.
+- SQLite sync paths are more durable and treat transient network failures as retryable scheduled-sync skips.
+- Routine CLI command errors no longer print the full help output.
+- Update checks avoid unnecessary GitHub API rate-limit pressure.
+- Switch the Go module path to `go.kenn.io/msgvault`.
+
+**Bug fixes**
+
+- Domain-based search results now hide locally deleted rows.
+- SQL slow/error logging includes query arguments and reports accurate streaming query durations.
+- Embedding skips rows that become empty after preprocessing and surfaces API 4xx response bodies for easier troubleshooting.
+- PST imports namespace source message IDs per archive so messages from different PST files no longer collide.
+
+---
+
 ## 0.14
 <small>2026-04-21</small>
 
